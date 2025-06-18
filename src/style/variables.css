@@ -1,0 +1,10 @@
+:root {
+  /* Mørk bakgrunn */
+  --color-dark: #1c1c1c;
+
+  /* Litt lysere mørkblå/grå */
+  --color-dark-alt: #1d2b42;
+
+  /* Lys sandfarge / aksent */
+  --color-light: #f7e6d3;
+}

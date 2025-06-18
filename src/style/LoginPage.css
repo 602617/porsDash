@@ -1,0 +1,102 @@
+
+/* Login.css */
+
+/* Sørg for at <html> og <body> fyller skjermen og har ingen margin */
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+/* Container som sentrerer innholdet både vertikalt og horisontalt */
+.login-container {
+  min-height: 100vh;                  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-dark); /* #1c1c1c */
+}
+
+/* Selve form‐boksen */
+.login-form {
+  background-color: var(--color-dark-alt); /* #1d2b42 */
+  padding: 2rem;                           /* større padding for moderne look */
+  border-radius: 1rem;                     /* jevnt avrundet boks */
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.10);          /* mykere skygge */
+  width: 22rem;                            /* litt bredere enn før */
+  max-width: 70%;
+}
+
+/* Overskrift inni formen */
+.login-heading {
+  font-size: 1.75rem;                      /* litt større tekst */
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: var(--color-light);               /* #f7e6d3 */
+}
+
+/* Feilmelding */
+.login-error {
+  color: #ef4444;                          /* sterkere rød for tydelighet */
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Felles styling for tekst‐input-felter */
+.login-input {
+  width: 100%;
+  background-color: var(--color-light);    /* #f7e6d3 */
+  border: none;
+  border-radius: 9999px;                   /* pill‐formet */
+  padding: 0.75rem 1rem;                   /* større knappfølelse */
+  margin-bottom: 1rem;                     /* litt mer luft mellom feltene */
+  font-size: 1rem;
+  color: var(--color-dark-alt);            /* tekst i mørkere kontrastfarge */
+  box-sizing: border-box;
+  outline: none;
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+/* Placeholder‐farge */
+.login-input::placeholder {
+  color: var(--color-gray-400);            /* litt nedtonet gråtonetekst */
+}
+
+/* Fokus‐state på input */
+.login-input:focus {
+  box-shadow: 0 0 0 3px rgba(255, 230, 211, 0.5); /* lys, sandfarget glow */
+}
+
+/* “Log In” knapp */
+.login-button {
+  width: 100%;
+  background-color: var(--color-light);    /* #f7e6d3 */
+  color: var(--color-dark);                /* #1c1c1c */
+  padding: 0.75rem 1rem;                   /* større trykk‐område */
+  border: none;
+  border-radius: 9999px;                   /* pill‐formet */
+  font-size: 1.125rem;                     /* større tekst */
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition:
+    background-color 0.2s ease-in-out,
+    transform 0.1s ease-in-out;
+}
+
+/* Hover‐state for knappen */
+.login-button:hover {
+  background-color: var(--color-dark);     /* #1c1c1c */
+  color: var(--color-light);               /* #f7e6d3 */
+  transform: translateY(-2px);
+}
+
+/* Aktiv (klikk) state */
+.login-button:active {
+  transform: translateY(0);
+}
+

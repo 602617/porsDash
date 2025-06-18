@@ -1,0 +1,11 @@
+.product-button {
+    display: flex;
+    background-color: #007bff;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  justify-content: center;
+  
+}

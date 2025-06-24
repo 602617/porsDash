@@ -1,0 +1,52 @@
+/* src/style/login.css */
+
+/* Importer en gratis Google Font (f.eks. Pacifico) */
+
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+
+.login-screen {
+  /* Fyll hele skjermen */
+  width: 100vw;
+  height: 100vh;
+
+  /* Bakgrunnsbilde */
+  background: url('/public/BackgroundText.png') no-repeat center center;
+  background-size: cover;
+
+  /* Vi vil posisjonere logo og knapp relativt til denne */
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-screen .logo-text {
+  /* Posisjon øverst midt */
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+
+  /* Font-styling */
+  font-family: 'Pacifico', cursive;
+  font-size: 2.5rem;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+}
+
+.login-screen .login-link {
+  /* Enkel knapp-lenke nede */
+  margin-top: auto;
+  margin-bottom: 75%;
+  padding: 0.75rem 1.5rem;
+  background-color: rgba(255,255,255,0.85);
+  color: #2a4055;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.login-screen .login-link:hover {
+  background-color: rgba(255,255,255,1);
+}

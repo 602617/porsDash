@@ -1,11 +1,65 @@
+/* src/style/dashboard.css */
+
+body {
+background: url(/public/backgroundNoText.png);
+}
 .product-button {
-    display: flex;
-    background-color: #007bff;
+  display: flex;
+  background-color: #1A9BA0;
   color: white;
   padding: 10px 16px;
   border: none;
   border-radius: 6px;
   text-decoration: none;
   justify-content: center;
+}
+
+/* Begrenser bredden og sentrerer alt */
+.dashboard-buttons-container {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* Tittelen */
+.dashboard-title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Grid med 2 kolonner */
+.dashboard-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+/* Stil for hver knapp */
+.dashboard-button {
+  background-color: #FDA055;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+  text-decoration-line: none;
+}
+
+/* Hover-effekt */
+.dashboard-button:hover {
+  background-color: #1e3041;
+}
+
+.icon {
+  width: 100px;
+  height: 100px;
+  
   
 }

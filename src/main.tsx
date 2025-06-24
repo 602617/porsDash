@@ -8,6 +8,8 @@ import "./index.css";
 import ProfilePage from './pages/ProfilePage.tsx'
 import './style/variables.css'
 import ItemPage from './pages/ItemPage.tsx'
+import MyProductsPage from './pages/MyProductsPage.tsx'
+import ItemDetailPage from './pages/ItemDetailPage.tsx'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -18,6 +20,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path="/login" element={<LoginPage />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/profile" element={<ProfilePage/>} />
+      <Route path="/myproducts" element={<MyProductsPage/>} />
+      <Route path='/items/:id' element={<ItemDetailPage />} />
     </Routes>
   </BrowserRouter>
 </React.StrictMode>,

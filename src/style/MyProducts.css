@@ -1,0 +1,31 @@
+.products-container {
+  padding: 1rem;
+  max-width: 600px;
+  margin: auto;
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.card {
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.button-add {
+  background-color: #2a4055;
+  color: #ffffff;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+  text-decoration-line: none;
+}

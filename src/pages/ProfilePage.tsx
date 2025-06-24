@@ -2,11 +2,17 @@
 import React, { useEffect, useState } from 'react';
 import type { User } from '../types/User';
 import Topbar from '../components/TopBar';
+import { useNavigate } from 'react-router-dom';
+import MyProducts from '../components/MyProducts';
+import BackButton from '../components/BackButton';
 
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     const token = localStorage.getItem('jwt');
@@ -16,7 +22,7 @@ const ProfilePage: React.FC = () => {
       return;
     }
 
-    fetch('http://localhost:8080/api/users/me', {
+    fetch(`${apiBaseUrl}/api/users/me`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -39,24 +45,74 @@ const ProfilePage: React.FC = () => {
       });
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      // 1) Remove the JWT (or whatever key you used) from localStorage
+      localStorage.removeItem('jwt');
+
+      // 2) Redirect to /login
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   if (loading) return <p>Loading profile…</p>;
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
   if (!user) return <p>No user data available.</p>;
 
   return (
-    <div>
-<Topbar />
-<div style={{ maxWidth: 400, margin: '2rem auto', padding: '1rem', border: '1px solid #ccc', borderRadius: 8 }}>
-        
-      <h2>Your Profile</h2>
-      <p><strong>ID:</strong> {user.id}</p>
-      <p><strong>Username:</strong> {user.username}</p>
-      {user.email && <p><strong>Email:</strong> {user.email}</p>}
-      {/* Render any other fields UserDto provides */}
-    </div>
+  <div>
+    <Topbar />
+    <BackButton />
+    <div
+      style={{
+        maxWidth: 400,
+        margin: '2rem auto',
+        padding: '2rem',
+        textAlign: 'center'
+      }}
+    >
+      
+
+      {/* Rundt bilde */}
+      <img
+        src={`https://i.pravatar.cc/150?u=${user.id}`} // random avatar per ID
+        alt="Profile"
+        style={{
+          width: 120,
+          height: 120,
+          borderRadius: '50%',
+          objectFit: 'cover',
+          margin: '1rem auto'
+        }}
+      />
+
+      {/* Brukernavn og ID */}
+      <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{user.username}</p>
+      <p>ID: {user.id}</p>
+
+      {/* Logout-knapp lenger ned */}
+      <button
+        onClick={handleLogout}
+        style={{
+          marginTop: '2rem',
+          padding: '0.5rem 1.5rem',
+          backgroundColor: '#304D6D',
+          color: 'white',
+          border: 'none',
+          borderRadius: 6,
+          cursor: 'pointer'
+        }}
+      >
+        Logout
+      </button>
+      <MyProducts />
     </div>
     
-  );
+  </div>
+);
+
 };
 
 export default ProfilePage;

@@ -14,18 +14,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-dark); /* #1c1c1c */
+  background: url('/public/BackgroundText.png') no-repeat center center;
+  background-size: cover;
 }
 
 /* Selve form‐boksen */
 .login-form {
-  background-color: var(--color-dark-alt); /* #1d2b42 */
-  padding: 2rem;                           /* større padding for moderne look */
-  border-radius: 1rem;                     /* jevnt avrundet boks */
+  margin-top: 15rem;       /* dytter hele boksen lenger ned */
+  padding: 2rem;          /* beholder innvendig padding */
+  border-radius: 1rem;
   box-shadow:
     0 4px 8px rgba(0, 0, 0, 0.15),
-    0 2px 4px rgba(0, 0, 0, 0.10);          /* mykere skygge */
-  width: 22rem;                            /* litt bredere enn før */
+    0 2px 4px rgba(0, 0, 0, 0.10);
+  width: 22rem;
   max-width: 70%;
 }
 

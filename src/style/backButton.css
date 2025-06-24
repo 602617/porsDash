@@ -1,0 +1,9 @@
+.back-button {
+    background: white;
+    font-size: 25px;
+    border-style: none;
+    width: 60px;
+    height: 60px;
+    margin: 0;
+    border-radius: 50%;
+}

@@ -27,7 +27,7 @@ const Topbar: React.FC = () => {
     <header className="topbar">
       <div className="logo">
         <Link to="/dashboard" className="logo-link">
-          Dashboard
+          Porsdash
         </Link>
       </div>
 
@@ -41,6 +41,9 @@ const Topbar: React.FC = () => {
           </li>
           <li>
             <Link to="/profile">Profile</Link>
+          </li>
+          <li>
+            <Link to="/myproducts">My Products</Link>
           </li>
           <li>
             <button onClick={handleLogout} className="logout-button">

@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface Item {
   id: number;
   name: string;
+  username: string;
 }
 
 const ItemList: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -20,7 +24,7 @@ const ItemList: React.FC = () => {
       }
 
       try {
-        const response = await fetch("http://localhost:8080/api/items", {
+        const response = await fetch(`${apiBaseUrl}/api/items`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -65,7 +69,15 @@ const ItemList: React.FC = () => {
               className="w-full h-36 object-cover"
             />
             <div className="p-3">
-              <h3 className="text-base font-semibold">{item.name}</h3>
+              <p>{item.username}</p>
+              <h3 className="text-base font-semibold">{item.name}  </h3>
+              <Link
+                to={`/items/${item.id}`}
+                state={{ item }}
+                className="mt-2 inline-block px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                View details
+              </Link>
             </div>
           </div>
         ))

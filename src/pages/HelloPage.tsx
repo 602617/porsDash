@@ -1,17 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import "../style/HelloPage.css"
 
 const HelloPage: React.FC = () => {
 
 
 
 return (
-    <div>
-        <h1>Velkommen</h1>
-        <Link to="/login" className="text-blue-600 hover:underline">
-            Log In  
-        </Link>
-    </div>
+    <div className="login-screen">
+    
+    <Link to="/login" className="login-link">
+      Log In
+    </Link>
+  </div>
 )
 };
 

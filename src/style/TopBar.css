@@ -2,7 +2,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #333;
+  background-color: #EB5B26;
   padding: 0 20px;
   height: 60px;
   color: #fff;
@@ -99,7 +99,7 @@
   }
 
   .nav.open {
-    max-height: 200px; /* adjust based on number of links */
+    max-height: 250px; /* adjust based on number of links */
   }
 
   .nav ul {

@@ -43,6 +43,21 @@ const MyProducts: React.FC = () => {
     setEditItemId(null);
   };
 
+  const handleDelete = async (itemId: number) => {
+  const token = localStorage.getItem("jwt");
+  const res = await fetch(`${apiBaseUrl}/api/items/${itemId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (res.ok) {
+    setItems(prev => prev.filter(i => i.id !== itemId));
+    setEditItemId(null);
+  } else {
+    alert("Kunne ikke slette produkt");
+  }
+};
+
+
   return (
     <div style={{ padding: "2rem" }}>
       <h2 className="text-center text-2xl mb-6">Mine produkter</h2>
@@ -87,22 +102,21 @@ const MyProducts: React.FC = () => {
                 {editItemId === item.id ? "Avbryt" : "Edit"}
               </button>
 
-              {editItemId === item.id && (
+             {editItemId === item.id && (
                 <>
                   <div className="mt-4">
                     <EditItemForm
                       itemId={item.id}
                       currentName={item.name}
                       onClose={() => setEditItemId(null)}
-                      onUpdate={(newName) =>
-                        handleUpdate(item.id, newName)
-                      }
+                      onUpdate={newName => handleUpdate(item.id, newName)}
+                      onDelete={() => handleDelete(item.id)}    // ← here
                     />
                   </div>
-                  {/* Her vises kalender + blokk-form */}
                   <ItemAvailabilityEditor itemId={item.id} />
                 </>
               )}
+
             </div>
           ))}
         </div>

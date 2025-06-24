@@ -3,7 +3,6 @@ import React from "react";
 import Topbar from "../components/TopBar";
 import { Link } from "react-router-dom";
 import "../style/dashboard.css";        // ✅ Import CSS her
-import Calender from "../components/Calender";
 import ProfileIcon from "../assets/Icons/ProfileIcon.png"
 import ItemsIcon from "../assets/Icons/Itemsicon.png"
 import MyProductsIcon from "../assets/Icons/MyProductsIcon.png"

@@ -29,7 +29,10 @@ const Dashboard: React.FC = () => {
         <img src={MyProductsIcon} alt="Items" className="icon"/>
         My Products
         </Link>
-        <button className="dashboard-button">Knapp 4</button>
+        <Link to="/dugnad" className="dashboard-button">
+        <img src={MyProductsIcon} alt="Items" className="icon" />
+        Dugnad
+        </Link>
       </div>
     </div>
       </main>

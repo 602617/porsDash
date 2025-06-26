@@ -12,7 +12,7 @@ const LoginPage: React.FC = () => {
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-  const handleLogin = async (e: FormEvent) => {
+  const handleLogin: (e: React.FormEvent<HTMLFormElement>) => Promise<void>  = async (e) => {
     e.preventDefault();
     setError("");
 

@@ -1,0 +1,83 @@
+/* Mobile-first styles for ItemDetail component */
+
+.item-detail-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: 1rem;
+  margin: 0 auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.item-detail-header {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.booking-form {
+  width: 90%;
+  max-width: 400px;
+  background-color: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.booking-form h2 {
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  text-align: center;
+}
+
+.booking-form .form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.booking-form label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.booking-form input {
+  width: 90%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.booking-form button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.booking-form button:hover {
+  background-color: #1e40af;
+}
+
+.calendar-wrapper {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Switch to two-column grid on larger screens */
+@media (min-width: 640px) {
+  .booking-form .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

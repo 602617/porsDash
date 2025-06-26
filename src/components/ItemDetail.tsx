@@ -4,15 +4,20 @@ import interactionPlugin from '@fullcalendar/interaction';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import FullCalendar from '@fullcalendar/react';
-import type { DateSelectArg, EventInput } from '@fullcalendar/core';
+import type { EventInput } from '@fullcalendar/core';
 import type { EventClickArg } from '@fullcalendar/core';
+import "../style/ItemDetail.css"
 
 interface Slot {
   id: number;
   startTime: string;
   endTime: string;
 }
-
+interface Booking {
+  id: number;
+  startTime: string;
+  endTime: string;
+}
 interface Item {
   id: number;
   name: string;
@@ -24,76 +29,85 @@ const ItemDetail: React.FC = () => {
   const { state } = useLocation();
   const item = (state as { item: Item }).item;
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const api = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem('jwt') || '';
+  const [newStart, setNewStart] = useState('');
+  const [newEnd, setNewEnd] = useState('');
 
   useEffect(() => {
-  const fetchBlocks = async () => {
-    try {
-      console.log("JWT token:", token);
-      const res = await fetch(`${api}/api/items/${id}/unavailability`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data: Slot[] = await res.json();
-        console.log("fetched slots: ", data)
-        setSlots(data);
+     const fetchAll = async () => {
+       // 1) fetch blocks
+       const [blocksRes, bookingsRes] = await Promise.all([
+         fetch(`${api}/api/items/${id}/unavailability`, {
+           headers: { Authorization: `Bearer ${token}` }
+         }),
+         fetch(`${api}/api/items/${id}/bookings`, {
+           headers: { Authorization: `Bearer ${token}` }
+         })
+       ]);
 
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+       if (blocksRes.ok) {
+         setSlots(await blocksRes.json());
+       }
+       if (bookingsRes.ok) {
+         setBookings(await bookingsRes.json());
+       }
+       setLoading(false);
+     };
+
+     fetchAll().catch(e => {
+       console.error(e);
+       setLoading(false);
+     });
+   }, [api, id, token]);
+    
+     const blockEvents: EventInput[] = slots.map(s => ({
+     id:    `block-${s.id}`,
+     title: 'Ikke ledig',
+     start: s.startTime,
+     end:   s.endTime,
+     color: '#e25858'
+   }));
+
+   const bookingEvents: EventInput[] = bookings.map(b => ({
+     id:    `booking-${b.id}`,
+     title: 'Reservert',
+     start: b.startTime,
+     end:   b.endTime,
+     color: '#6AC2B8'
+   }));
+
+   const allEvents = [ ...blockEvents, ...bookingEvents ];
+  
+ 
+
+
+ 
+
+
+  const handleAddBooking = async () => {
+    if (!newStart || !newEnd) {
+      return alert('Velg både start og slutt');
     }
-  };
-
-  fetchBlocks();
-}, [api, id, token]);
-
-  // Map tilgjengelighet til kalender-events
-  const events = slots.map(s => ({
-    id: String(s.id),
-    title: 'Ikke ledig',
-    start: s.startTime,
-    end: s.endTime,
-    color: '#e25858'          // lys turkis
-  }));
-
-  // Håndter bruker-select av nytt tidsrom
-  const handleDateSelect = async (selectInfo: DateSelectArg) => {
-    const start = selectInfo.startStr;
-    const end   = selectInfo.endStr;
-    if (!window.confirm(`Book from ${start} to ${end}?`)) {
-      selectInfo.view.calendar.unselect();
-      return;
-    }
-
     const res = await fetch(`${api}/api/items/${id}/bookings`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ startTime: start, endTime: end })
+      body: JSON.stringify({ startTime: newStart, endTime: newEnd })
     });
-   
     if (res.ok) {
-    alert('Booked!');
-    // ➜ bruk EventInput her, ikke EventApi
-    const newEvent: EventInput = {
-      id: 'booking-' + Date.now(),
-      title: 'Reservert',
-      start,    // string er et gyldig DateInput
-      end,
-      allDay: false
-    };
-    selectInfo.view.calendar.addEvent(newEvent);
-  } else {
-    const err = await res.text();
-    alert('Feil ved booking: ' + err);
-  }
-    selectInfo.view.calendar.unselect();
+      const created: Booking = await res.json();
+      setBookings(prev => [...prev, created]);
+      setNewStart(''); setNewEnd('');
+      alert('Booking opprettet!');
+    } else {
+      const err = await res.text();
+      alert('Kunne ikke booke: ' + err);
+    }
   };
 
   const handleBlockClick = async (clickInfo: EventClickArg) => {
@@ -128,6 +142,45 @@ const ItemDetail: React.FC = () => {
       <h1 className="text-2xl font-bold mb-2">{item.name}</h1>
       <p className="text-sm text-gray-600 mb-4">Utleier: {item.username}</p>
 
+  <div className="item-detail-container">
+  <h2 className="item-detail-header">Book tid for produktet</h2>
+
+  <div className="booking-form">
+    {/* flytt overskriften inn i booking-form om du vil style den der */}
+    {/* <h2 className="item-detail-header">Book tid for produktet</h2> */}
+
+    {/* grid wrapper for to-kolonne på større skjermer */}
+    <div className="form-grid">
+      <div>
+        <label>Start</label>
+        <input
+          type="datetime-local"
+          value={newStart}
+          onChange={e => setNewStart(e.target.value)}
+          className="mt-1 p-2 w-full border rounded"
+        />
+      </div>
+      <div>
+        <label>Slutt</label>
+        <input
+          type="datetime-local"
+          value={newEnd}
+          onChange={e => setNewEnd(e.target.value)}
+          className="mt-1 p-2 w-full border rounded"
+        />
+      </div>
+    </div>
+    <button
+      onClick={handleAddBooking}
+      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+    >
+      Bekreft booking
+    </button>
+  </div>
+</div>
+
+      <h2 className="item-detail-header">Sjekk tilgjenglihet</h2>
+
       <FullCalendar
         plugins={[ dayGridPlugin, timeGridPlugin, interactionPlugin ]}
         initialView="timeGridWeek"
@@ -136,9 +189,8 @@ const ItemDetail: React.FC = () => {
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
-        events={events}
-        selectable={true}
-        select={handleDateSelect}
+        events={allEvents}
+        selectable={false}
         eventClick={handleBlockClick}
         selectMirror={true}
         allDaySlot={false}

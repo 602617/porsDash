@@ -10,6 +10,7 @@ import './style/variables.css'
 import ItemPage from './pages/ItemPage.tsx'
 import MyProductsPage from './pages/MyProductsPage.tsx'
 import ItemDetailPage from './pages/ItemDetailPage.tsx'
+import DugnadPage from './pages/Dugnad.tsx'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -22,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path="/profile" element={<ProfilePage/>} />
       <Route path="/myproducts" element={<MyProductsPage/>} />
       <Route path='/items/:id' element={<ItemDetailPage />} />
+      <Route path='/dugnad' element={<DugnadPage/>} />
     </Routes>
   </BrowserRouter>
 </React.StrictMode>,

@@ -1,6 +1,6 @@
 // src/pages/LoginPage.tsx
 import { useState } from "react";
-import type { FormEvent } from "react";
+
 import { useNavigate } from "react-router-dom";
 import "../style/LoginPage.css"; // Ensure you have this CSS file for styling
 

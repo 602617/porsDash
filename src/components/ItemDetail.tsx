@@ -131,7 +131,7 @@ const ItemDetail: React.FC = () => {
     alert('Blokk-periode slettet');
   } else {
     const err = await res.text();
-    alert('Kunne ikke slette: ' + err);
+    alert('Kunne ikke slette: Du eier ikke denne' + err);
   }
 };
 

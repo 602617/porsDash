@@ -6,7 +6,7 @@ import "../style/dashboard.css";        // ✅ Import CSS her
 import ProfileIcon from "../assets/Icons/ProfileIcon.png"
 import ItemsIcon from "../assets/Icons/Itemsicon.png"
 import MyProductsIcon from "../assets/Icons/MyProductsIcon.png"
-
+import DugnadIcon from "../assets/Icons/DugnadIcon.png"
 
 const Dashboard: React.FC = () => {
   return (
@@ -30,7 +30,7 @@ const Dashboard: React.FC = () => {
         My Products
         </Link>
         <Link to="/dugnad" className="dashboard-button">
-        <img src={MyProductsIcon} alt="Items" className="icon" />
+        <img src={DugnadIcon} alt="Items" className="icon" />
         Dugnad
         </Link>
       </div>

@@ -34,13 +34,13 @@
 
 .event-time {
   font-size: 0.875rem;
-  color: #4a5568; /* gray-700 */
+  color: #000000; /* gray-700 */
   margin-bottom: 0.25rem;
 }
 
 .event-created {
   font-size: 0.75rem;
-  color: #a0aec0; /* gray-400 */
+  color: #ffffff; /* gray-400 */
 }
 
 @media (min-width: 640px) {

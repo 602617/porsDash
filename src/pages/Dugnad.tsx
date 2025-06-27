@@ -1,6 +1,7 @@
 import React from "react";
 import Topbar from "../components/TopBar";
 import BackButton from "../components/BackButton";
+import EventList from "../components/EventList";
 
 const DugnadPage: React.FC = () => {
     return (
@@ -9,7 +10,7 @@ const DugnadPage: React.FC = () => {
             <div>
                 <BackButton />
                 <div>
-                    Hello
+                    <EventList />
                 </div>
             </div>
         </div>

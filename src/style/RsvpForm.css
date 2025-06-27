@@ -1,0 +1,43 @@
+/* Mobile-first styling for RSVP form */
+
+.rsvp-form {
+  background: #f3f4f6;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+.rsvp-heading {
+  font-size: 1.125rem;
+  margin-bottom: 0.75rem;
+}
+.rsvp-error {
+  color: #b91c1c;
+  margin-bottom: 0.5rem;
+}
+.rsvp-row {
+  margin-bottom: 0.75rem;
+}
+.rsvp-row label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.rsvp-comment {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+}
+.rsvp-button {
+  width: 100%;
+  padding: 0.75rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.rsvp-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

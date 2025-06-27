@@ -12,8 +12,10 @@ import ItemPage from './pages/ItemPage.tsx'
 import MyProductsPage from './pages/MyProductsPage.tsx'
 import ItemDetailPage from './pages/ItemDetailPage.tsx'
 import DugnadPage from './pages/Dugnad.tsx'
+import EventDetail from './components/EventDetail.tsx'
 
 import { registerSW } from 'virtual:pwa-register';
+import CreateEventForm from './components/CreateEvent.tsx'
 
 
 
@@ -46,6 +48,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path="/myproducts" element={<MyProductsPage/>} />
       <Route path='/items/:id' element={<ItemDetailPage />} />
       <Route path='/dugnad' element={<DugnadPage/>} />
+      <Route path="/events/:id" element={<EventDetail />} />
+      <Route path='/events/new' element={<CreateEventForm />} />
     </Routes>
   </BrowserRouter>
 </React.StrictMode>,

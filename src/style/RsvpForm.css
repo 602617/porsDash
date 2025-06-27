@@ -1,10 +1,14 @@
 /* Mobile-first styling for RSVP form */
 
 .rsvp-form {
-  background: #f3f4f6;
+  background: inherit;
   padding: 1rem;
   border-radius: 8px;
   margin-top: 1rem;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+  transition: box-shadow 0.2s ease;
+  
+  margin: 2rem;
 }
 .rsvp-heading {
   font-size: 1.125rem;
@@ -22,13 +26,14 @@
   margin-bottom: 0.5rem;
 }
 .rsvp-comment {
-  width: 100%;
+  width: 90%;
   padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
+  
 }
 .rsvp-button {
-  width: 100%;
+  
   padding: 0.75rem;
   background: #2563eb;
   color: #fff;

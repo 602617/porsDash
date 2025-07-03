@@ -1,7 +1,6 @@
 // src/components/EventList.tsx
 import React, {useState, useEffect} from "react";
 import { Link } from "react-router-dom";
-import { Calendar, Clock } from "lucide-react";
 import "../style/EventList.css";
 
 interface EventListDto {
@@ -72,13 +71,14 @@ const EventList: React.FC = () => {
                             sm:flex-row sm:space-y-0 sm:space-x-4
                             text-gray-600 text-sm">
               <div className="flex items-center space-x-1">
-                <Calendar className="w-4 h-4" />
-                <span>{startDate === endDate ? startDate : `${startDate} - ${endDate}`}</span>
-                <span className="hidden sm:inline">–</span>
+                
+                <span>{startDate === endDate ? startDate : `${startDate} - ${endDate}`} kl. {startTime} - {endTime}</span>
+                <span className="hidden sm:inline">– </span>
+                
               </div>
               <div className="flex items-center space-x-1">
-                <Clock className="w-4 h-4" />
-                <span>{startTime} - {endTime}</span>
+                
+                
               </div>
               
             

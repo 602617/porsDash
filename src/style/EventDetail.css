@@ -1,0 +1,54 @@
+
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.antendees-container {
+    padding: 2rem;
+    
+   
+}
+
+.atendees-container-list {
+    
+}
+
+
+.can-list {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    border-radius: 10%;
+    border-color: #2a4055;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    list-style: none;
+    margin-top: 20px;
+}
+
+.senter {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.change-button {
+  background-color: #2a4055;
+  color: #ffffff;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+  text-decoration-line: none;
+}
+
+.change-button-pad {
+    padding: 2rem;
+}

@@ -5,6 +5,8 @@ import { jwtDecode }                  from 'jwt-decode';
 import RsvpForm                   from './RsvpForm';
 import BackButton                 from './BackButton';
 import Topbar                     from './TopBar';
+import '../style/EventDetail.css'
+import { subscribeUser } from './usePushNotifications';
 
 interface AttendanceDto {
   userId:    number;
@@ -98,12 +100,15 @@ const EventDetail: React.FC = () => {
   const { date: startDate, time: startTime } = formatDateTime(event.startTime);
   const { date: endDate,   time: endTime   } = formatDateTime(event.endTime);
 
+  const canList    = attendees.filter(a => a.status === 'CAN');
+  const cannotList = attendees.filter(a => a.status !== 'CAN');
+
   return (
     <div>
       <Topbar />
       <BackButton />
 
-      <div className="max-w-lg mx-auto p-4 space-y-4">
+      <div className="container">
         <h1 className="text-2xl font-bold">{event.title}</h1>
 
         {/* Date + Time */}
@@ -130,29 +135,54 @@ const EventDetail: React.FC = () => {
         </p>
 
        
-
-        <h2 className="text-xl font-semibold mt-6">Påmeldinger</h2>
+        <div className='antendees-container'>
+        
         {attendees.length === 0 ? (
           <p>Ingen har meldt seg på ennå.</p>
         ) : (
-          <ul className="space-y-2">
-            {attendees.map(a => (
-              <li key={a.userId} className="p-2 border rounded">
-                <span className="font-medium">{a.username}</span> —{' '}
-                <span className={
-                  a.status === 'CAN'
-                    ? 'text-green-600'
-                    : 'text-red-600'
-                }>
-                  {a.status === 'CAN' ? 'Kan' : 'Kan ikke'}
-                </span>
-                {a.comment && (
-                  <p className="mt-1 text-sm">«{a.comment}»</p>
-                )}
-              </li>
-            ))}
-          </ul>
+
+          <>
+          <div className='atendees-container-list'>
+          
+          {canList.length > 0 && (
+            <div className='can-list'>
+              <div className='senter'>
+                <h3 >Kan delta</h3>
+                  {canList.map(a => (
+                    <li key={a.userId} >
+                      <span>{a.username}</span>
+                      {a.comment && <p className="mt-1 text-sm">«{a.comment}»</p>}
+                    </li>
+                  ))}
+              </div>
+              </div>
+            )}
+            
+
+            
+            {cannotList.length > 0 && (
+              <div className='can-list'>
+              <div className='senter'>
+                <h3 >Kan ikke delta</h3>
+                  {cannotList.map(a => (
+                    <li key={a.userId} >
+                      <span>{a.username}</span>
+                      
+                      {a.comment && <p className="mt-1 text-sm">«{a.comment}»</p>}
+                    </li>
+                  ))}
+              </div>
+              </div>
+            )}
+            
+            </div>
+          </>
+          
+          
         )}
+        </div>
+
+          <div className='change-button-pad'>
          {/* RSVP form / Endre-knapp */}
         {showForm ? (
           <RsvpForm
@@ -161,12 +191,19 @@ const EventDetail: React.FC = () => {
           />
         ) : (
           <button
-            onClick={() => setShowForm(true)}
-            className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+            onClick={() => {setShowForm(true);
+              subscribeUser()
+                .then(s => {
+                  if (s) alert('Abonnert!');
+                })
+                .catch(err => console.error(err));
+            }}
+            className="change-button"
           >
             Endre
           </button>
         )}
+        </div>
       </div>
     </div>
   );

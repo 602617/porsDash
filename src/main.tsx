@@ -16,6 +16,7 @@ import EventDetail from './components/EventDetail.tsx'
 
 import { registerSW } from 'virtual:pwa-register';
 import CreateEventForm from './components/CreateEvent.tsx'
+import ShoppingLists from './pages/ShoppingLists.tsx'
 
 
 
@@ -50,6 +51,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path='/dugnad' element={<DugnadPage/>} />
       <Route path="/events/:id" element={<EventDetail />} />
       <Route path='/events/new' element={<CreateEventForm />} />
+      <Route path='/handlelister' element={<ShoppingLists />} />
     </Routes>
   </BrowserRouter>
 </React.StrictMode>,

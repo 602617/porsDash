@@ -13,6 +13,7 @@ export default defineConfig({
         short_name: 'PorsDash',
         description: 'Utleie-app som PWA',
         theme_color: '#2563eb',
+        display: 'standalone',
         icons: [
           {
             src: '/icon-192.png',

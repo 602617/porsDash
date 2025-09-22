@@ -66,6 +66,30 @@ const Topbar: React.FC = () => {
           Porsdash
         </Link>
       </div>
+      {/* Notifications */}
+      <div className="notification-wrapper" ref={dropdownRef}>
+        <button className="bell-button" onClick={toggleNotifications} aria-label="Notifications">
+          <Bell className="bell-icon" />
+          {notes.length > 0 && <span className="badge">{notes.length}</span>}
+        </button>
+        {menuOpen && (
+          <div className="notification-dropdown">
+            {notes.length > 0 ? notes.map(n => (
+              <div key={n.id} className="note-item">
+                <Link
+                    to={n.url}
+                    onClick={() => markRead(n.id)}
+                    className="note-link"
+                  >
+                    {n.message}
+                  </Link>
+              </div>
+            )) : (
+              <div className="note-none">Ingen nye varsler</div>
+            )}
+          </div>
+        )}
+      </div>
 
       <nav className={`nav ${isOpen ? 'open' : ''}`}>
         <ul>
@@ -91,30 +115,7 @@ const Topbar: React.FC = () => {
         <span className="bar" />
       </button>
 
-      {/* Notifications */}
-      <div className="notification-wrapper" ref={dropdownRef}>
-        <button className="bell-button" onClick={toggleNotifications} aria-label="Notifications">
-          <Bell className="bell-icon" />
-          {notes.length > 0 && <span className="badge">{notes.length}</span>}
-        </button>
-        {menuOpen && (
-          <div className="notification-dropdown">
-            {notes.length > 0 ? notes.map(n => (
-              <div key={n.id} className="note-item">
-                <Link
-                    to={n.url}
-                    onClick={() => markRead(n.id)}
-                    className="note-link"
-                  >
-                    {n.message}
-                  </Link>
-              </div>
-            )) : (
-              <div className="note-none">Ingen nye varsler</div>
-            )}
-          </div>
-        )}
-      </div>
+      
     </header>
   );
 };

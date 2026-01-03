@@ -3,11 +3,11 @@ import React from "react";
 import Topbar from "../components/TopBar";
 import { Link } from "react-router-dom";
 import "../style/dashboard.css";        // ✅ Import CSS her
-import ProfileIcon from "../assets/Icons/ProfileIcon.png"
-import ItemsIcon from "../assets/Icons/Itemsicon.png"
-import MyProductsIcon from "../assets/Icons/MyProductsIcon.png"
-import DugnadIcon from "../assets/Icons/DugnadIcon.png"
-import ShoppingIcon from "../assets/Icons/ShoppingIcon.png"
+import ProfileIcon from "../assets/ProfileIcon.png"
+import ItemsIcon from "../assets/Itemsicon.png"
+import MyProductsIcon from "../assets/MyProductsIcon.png"
+import DugnadIcon from "../assets/DugnadIcon.png"
+import ShoppingIcon from "../assets/ShoppingIcon.png"
 
 const Dashboard: React.FC = () => {
   return (

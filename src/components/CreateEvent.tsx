@@ -1,6 +1,7 @@
 // src/components/CreateEventForm.tsx
 import React, { useState } from 'react';
 import { useNavigate }     from 'react-router-dom';
+import { PageHeader } from './PageHeaderProps';
 
 interface EventDto {
   title:       string;
@@ -59,10 +60,12 @@ const CreateEventForm: React.FC = () => {
   };
 
   return (
+    <div>
+      <PageHeader title="Opprett arrangement" showBack />
     <form
       onSubmit={handleSubmit}
       className="max-w-md mx-auto p-4 bg-white rounded-lg shadow space-y-4"
-    >
+      >
       <h2 className="text-xl font-semibold">Opprett nytt arrangement</h2>
 
       {error && (
@@ -77,7 +80,7 @@ const CreateEventForm: React.FC = () => {
           onChange={e => setTitle(e.target.value)}
           className="mt-1 block w-full p-2 border rounded"
           required
-        />
+          />
       </div>
 
       <div>
@@ -88,7 +91,7 @@ const CreateEventForm: React.FC = () => {
           className="mt-1 block w-full p-2 border rounded"
           rows={4}
           required
-        />
+          />
       </div>
 
       <div>
@@ -110,7 +113,7 @@ const CreateEventForm: React.FC = () => {
             onChange={e => setStartTime(e.target.value)}
             className="mt-1 block w-full p-2 border rounded"
             required
-          />
+            />
         </div>
         <div>
           <label className="block text-sm font-medium">Sluttidspunkt <span className="text-red-500">*</span></label>
@@ -132,6 +135,7 @@ const CreateEventForm: React.FC = () => {
         {loading ? 'Oppretter…' : 'Opprett Arrangement'}
       </button>
     </form>
+        </div>
   );
 };
 

@@ -1,52 +1,73 @@
-/* src/style/login.css */
+html, body {
+  height: 100%;
+  margin: 0;
+}
 
-/* Importer en gratis Google Font (f.eks. Pacifico) */
+.login-container {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
 
-@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
-
-.login-screen {
-  /* Fyll hele skjermen */
-  width: 100vw;
-  height: 100vh;
-
-  /* Bakgrunnsbilde */
-  background: url('/public/BackgroundText.png') no-repeat center center;
-  background-size: cover;
-
-  /* Vi vil posisjonere logo og knapp relativt til denne */
   position: relative;
-  display: flex;
+  overflow: hidden;
+
+  background: linear-gradient(
+    45deg,
+    rgba(2, 0, 36, 1) 0%,
+    rgba(2, 26, 71, 1) 35%,
+    rgba(49, 119, 232, 1) 100%
+  );
+}
+
+/* holder title + knapp samlet og sentrert */
+.login-hero {
+  position: relative;
+  z-index: 2;
+  width: min(420px, 90vw);
+  text-align: center;
+  display: grid;
+  gap: 1.6rem;
+}
+
+.login-title {
+  margin: 0;
+  font-size: 2.4rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* knapp for Link (samme look som login-button) */
+.login-cta {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-}
 
-.login-screen .logo-text {
-  /* Posisjon øverst midt */
-  position: absolute;
-  top: 10%;
-  left: 50%;
-  transform: translateX(-50%);
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
 
-  /* Font-styling */
-  font-family: 'Pacifico', cursive;
-  font-size: 2.5rem;
-  color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
-}
+  background-color: var(--color-light);
+  color: var(--color-dark);
+  padding: 0.85rem 1rem;
+  border-radius: 9999px;
 
-.login-screen .login-link {
-  /* Enkel knapp-lenke nede */
-  margin-top: auto;
-  margin-bottom: 75%;
-  padding: 0.75rem 1.5rem;
-  background-color: rgba(255,255,255,0.85);
-  color: #2a4055;
+  font-size: 1.125rem;
+  font-weight: 600;
   text-decoration: none;
-  border-radius: 6px;
-  font-weight: bold;
-  transition: background-color 0.2s;
+  cursor: pointer;
+
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
 }
 
-.login-screen .login-link:hover {
-  background-color: rgba(255,255,255,1);
+.login-cta:hover {
+  background-color: var(--color-dark);
+  color: var(--color-light);
+  transform: translateY(-2px);
+}
+
+.login-cta:active {
+  transform: translateY(0);
 }

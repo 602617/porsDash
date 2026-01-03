@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../style/LoginPage.css"; // Ensure you have this CSS file for styling
 
+
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -27,7 +28,7 @@ const LoginPage: React.FC = () => {
 
       if (response.ok) {
         localStorage.setItem("jwt", data.token);
-        navigate("/dashboard");
+        navigate("/nydash");
       } else {
         setError("Invalid credentials");
       }
@@ -38,7 +39,10 @@ const LoginPage: React.FC = () => {
   };
 
   return (
+    <div>
+
     <div className="login-container">
+      <h1 className="login-title">PorsDash</h1>
       <form onSubmit={handleLogin} className="login-form">
         <h2 className="login-heading">Log In</h2>
         {error && <p className="login-error">{error}</p>}
@@ -48,7 +52,7 @@ const LoginPage: React.FC = () => {
           className="login-input"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-        />
+          />
         <input
           type="password"
           placeholder="Password"
@@ -56,12 +60,14 @@ const LoginPage: React.FC = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           style={{ marginBottom: '1rem' }} /* matches Tailwind’s mb-4 */
-        />
+          />
         <button type="submit" className="login-button">
           Log In
         </button>
       </form>
+      
     </div>
+          </div>
   );
 };
 

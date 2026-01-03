@@ -7,11 +7,14 @@ const HelloPage: React.FC = () => {
 
 
 return (
-    <div className="login-screen">
-    
-    <Link to="/login" className="login-link">
-      Log In
-    </Link>
+    <div className="login-container">
+    <div className="login-hero">
+      <h1 className="login-title">PorsDash</h1>
+
+      <Link to="/login" className="login-cta">
+        Log In
+      </Link>
+    </div>
   </div>
 )
 };

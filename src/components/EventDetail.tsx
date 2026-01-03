@@ -3,10 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams }              from 'react-router-dom';
 import { jwtDecode }                  from 'jwt-decode';
 import RsvpForm                   from './RsvpForm';
-import BackButton                 from './BackButton';
-import Topbar                     from './TopBar';
 import '../style/EventDetail.css'
 import { subscribeUser } from './usePushNotifications';
+import { PageHeader } from './PageHeaderProps';
+import BottomNav from './BottomNav';
 
 interface AttendanceDto {
   userId:    number;
@@ -105,11 +105,11 @@ const EventDetail: React.FC = () => {
 
   return (
     <div>
-      <Topbar />
-      <BackButton />
+      <PageHeader title={event.title} showBack />
+      
 
       <div className="container">
-        <h1 className="text-2xl font-bold">{event.title}</h1>
+        
 
         {/* Date + Time */}
         <div className="text-gray-600 text-sm space-y-1">
@@ -205,6 +205,7 @@ const EventDetail: React.FC = () => {
         )}
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 };

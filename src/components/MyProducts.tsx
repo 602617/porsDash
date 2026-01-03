@@ -60,7 +60,7 @@ const MyProducts: React.FC = () => {
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h2 className="text-center text-2xl mb-6">Mine produkter</h2>
+      
 
       <div className="flex justify-center mb-8">
         <button

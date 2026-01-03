@@ -1,18 +1,21 @@
 import React from "react";
-import Topbar from "../components/TopBar";
-import BackButton from "../components/BackButton";
+
+import "../style/ItemPage.css"
 import ItemDetail from "../components/ItemDetail";
+import BottomNav from "../components/BottomNav";
+import { PageHeader } from "../components/PageHeaderProps";
 
 const ItemDetailPage: React.FC = () => {
 
     return (
-        <div>
-            <Topbar />
+        <div className="mainen">
+            
             <main>
-                <BackButton />
-                <div>
+                <PageHeader  title="Items detail" showBack />
+                
                     <ItemDetail />
-                </div>
+                
+                <BottomNav />
             </main>
         </div>
     )

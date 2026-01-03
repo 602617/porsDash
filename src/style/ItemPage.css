@@ -1,3 +1,8 @@
-.main {
-    background: url(/public/backgroundNoText.png);
+.mainen {
+  min-height: 100vh;
+}
+
+/* innholdet må ha plass til nav nederst */
+.mainen main {
+  padding-bottom: 80px; /* juster til høyden på BottomNav */
 }

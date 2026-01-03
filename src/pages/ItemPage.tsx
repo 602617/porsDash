@@ -1,7 +1,9 @@
 import React from "react"
 import ItemList from "../components/ItemList"
-import Topbar from "../components/TopBar"
-import BackButton from "../components/BackButton"
+import "../style/ItemPage.css"
+
+import BottomNav from "../components/BottomNav"
+import { PageHeader } from "../components/PageHeaderProps"
 
 
 const ItemPage: React.FC = () => {
@@ -10,17 +12,19 @@ const ItemPage: React.FC = () => {
 
     return (
         <div className="mainen">
-            <Topbar />
+            
             
             <main>
-                <BackButton />
+                <PageHeader title="Items" showBack/>
             <div>
-                <h1 style={{margin: 0}}>Items</h1>
+                
                 
             <ItemList />
-            </div>
-            </main>
             
+            </div>
+            
+            </main>
+            <BottomNav/>
         </div>
         
     )

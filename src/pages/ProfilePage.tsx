@@ -1,10 +1,9 @@
 // src/pages/ProfilePage.tsx
 import React, { useEffect, useState } from 'react';
 import type { User } from '../types/User';
-import Topbar from '../components/TopBar';
 import { useNavigate } from 'react-router-dom';
 import MyProducts from '../components/MyProducts';
-import BackButton from '../components/BackButton';
+import { PageHeader } from '../components/PageHeaderProps';
 
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -63,8 +62,7 @@ const ProfilePage: React.FC = () => {
 
   return (
   <div>
-    <Topbar />
-    <BackButton />
+    <PageHeader title="Profil" showBack/>
     <div
       style={{
         maxWidth: 400,

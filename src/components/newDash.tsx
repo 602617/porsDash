@@ -4,7 +4,7 @@ import '../style/newDash.css'
 import BottomNav from "./BottomNav";
 import { Link } from "react-router-dom";
 
-import notifyBell from '../assets/Icons/notificationBell.png'
+import notifyBell from '../assets/Icons/NotificationBell.png'
 import itemIcon from '../assets/Icons/Itemsicon.png'
 
 const NewDash: React.FC = () => {

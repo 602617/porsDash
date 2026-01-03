@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
-import homeIcon from "../assets/icons/DugnadIcon.png";
-import bellIcon from "../assets/icons/MyProductsIcon.png";
-import userIcon from "../assets/icons/ShoppingIcon.png";
+import homeIcon from "../assets/DugnadIcon.png";
+import bellIcon from "../assets/MyProductsIcon.png";
+import userIcon from "../assets/ShoppingIcon.png";
 import '../style/BottomNav.css' 
 
 export default function BottomNav() {

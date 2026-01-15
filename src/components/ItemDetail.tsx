@@ -134,7 +134,8 @@ const ItemDetail: React.FC = () => {
   };
 
   const handleBlockClick = async (clickInfo: EventClickArg) => {
-    const blockId = clickInfo.event.id;
+    if(!clickInfo.event.id.startsWith('block-'))return
+    const blockId = clickInfo.event.id.replace('block-', '');
     if (!confirm(`Slett ${clickInfo.event.startStr} — ${clickInfo.event.endStr}?`)) return;
     const res = await fetch(`${api}/api/items/${id}/unavailability/${blockId}`, {
       method: 'DELETE', headers: { Authorization: `Bearer ${token}` }

@@ -38,6 +38,10 @@ const Dashboard: React.FC = () => {
         <img src={ShoppingIcon} alt="Items" className="icon" />
         Handleliste
         </Link>
+        <Link to="/loan" className="dashboard-button">
+        <img src={ShoppingIcon} alt="Items" className="icon" />
+        Lån
+        </Link>
       </div>
     </div>
       </main>

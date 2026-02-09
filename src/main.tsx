@@ -18,7 +18,7 @@ import NewDash from './components/newDash.tsx'
 import { registerSW } from 'virtual:pwa-register';
 import CreateEventForm from './components/CreateEvent.tsx'
 import ShoppingLists from './pages/ShoppingLists.tsx'
-
+import LoanPage from './pages/LoanPage.tsx'
 
 
 registerSW({
@@ -55,6 +55,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path='/handlelister' element={<ShoppingLists />} />
       <Route path='/nydash' element={<NewDash />} />
       <Route path='/nyevent' element={<CreateEventForm />} />
+      <Route path='/loan' element={<LoanPage loanId={2} baseUrl={import.meta.env.VITE_API_BASE_URL ?? ""} />} />
     </Routes>
   </BrowserRouter>
 </React.StrictMode>,

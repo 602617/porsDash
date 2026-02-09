@@ -58,6 +58,10 @@ const NewDash: React.FC = () => {
                         <p>Mine produkter</p>
                         <img src={itemIcon} alt="item icon" />
                         </Link>
+                        <Link to="/loan" className="dashboard-btn">
+                        <p>Lån</p>
+                        <img src={itemIcon} alt="item icon" />
+                        </Link>
                     
                 </div>
                 </section>

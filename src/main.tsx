@@ -7,7 +7,7 @@ import LoginPage from "../src/pages/LoginPage.tsx"
 import Dashboard from './pages/Dashboard.tsx'
 import "./index.css";
 import ProfilePage from './pages/ProfilePage.tsx'
-import './style/variables.css'
+import './style/theme.css'
 import ItemPage from './pages/ItemPage.tsx'
 import MyProductsPage from './pages/MyProductsPage.tsx'
 import ItemDetailPage from './pages/ItemDetailPage.tsx'

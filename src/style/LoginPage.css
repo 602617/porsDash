@@ -1,8 +1,4 @@
 /* Login.css */
-html, body {
-  height: 100%;
-  margin: 0;
-}
 
 .login-title {
   position: relative;
@@ -33,13 +29,7 @@ html, body {
   position: relative;
   overflow: hidden;
 
-  /* Samme gradient som header */
-  background: linear-gradient(
-    45deg,
-    rgba(2, 0, 36, 1) 0%,
-    rgba(2, 26, 71, 1) 35%,
-    rgba(49, 119, 232, 1) 100%
-  );
+  background: transparent;
 }
 
 /* Wave (topp) */

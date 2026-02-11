@@ -1,40 +1,53 @@
-/* start helt i toppen */
-html, body { height: 100%; }
-body { margin: 0; }
-
 .top {
   position: relative;
-  background: linear-gradient(45deg,rgba(2, 0, 36, 1) 0%, rgba(2, 26, 71, 1) 35%, rgba(49, 119, 232, 1) 100%);  /* toppfarge */
-  
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
   padding: 40px 20px 60px; /* ekstra bunn-padding så bølgen får plass */
   text-align: center;
   overflow: hidden;        /* klipp alt som stikker utenfor */
 }
 
+.top::before {
+  content: "";
+  position: absolute;
+  inset: -40% -20% auto -20%;
+  height: 140%;
+  background:
+    radial-gradient(closest-side at 18% 35%, rgba(125, 211, 252, 0.28), transparent 60%),
+    radial-gradient(closest-side at 80% 25%, rgba(167, 139, 250, 0.22), transparent 62%),
+    radial-gradient(closest-side at 55% 85%, rgba(244, 114, 182, 0.18), transparent 60%);
+  filter: blur(16px);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
 .top .wave {
   position: absolute;
-  left: 0;
-  bottom: -1px;   /* lille minus for å unngå hårfin linje */
-  width: 100%;
+  left: -1px;
+  bottom: -2px;
+  width: calc(100% + 2px);
   height: 60px;  /* juster bølgehøyde */
   display: block;
   line-height: 0;
 }
+.top .wave path {
+  fill: var(--bg) !important;
+}
 
 .bottom {
-  background: #ffffff;     /* MÅ matche path fill */
-  padding: 140px 20px 80px;
+  background: transparent;     /* MÅ matche path fill */
+  padding: 24px 16px 96px;
   display: flex;
   justify-content: center;
-  gap: 40px;
-  padding: 20px;
+  gap: 16px;
 }
 
 .column {
     display: flex;
     flex-direction: column;
     
-    gap: 10px;
+    gap: 16px;
 }
 
 .page-title {
@@ -45,46 +58,84 @@ body { margin: 0; }
 /*dashboard main buttons*/
 .dashboard-btn {
   position: relative;
-  width: 160px;
-  height: 160px;
+  width: min(44vw, 170px);
+  height: 170px;
   
   font-size: 1rem;
-  border: none;
-  border-radius: 8px;
-  background-color: #ffffff;
-  color: white;
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  background-color: var(--card);
+  color: var(--text);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-start;
-  box-shadow: 1px 3px 10px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform 220ms ease, background-color 220ms ease, border-color 220ms ease;
+  animation: dashIn 700ms cubic-bezier(.2,1,.2,1) both;
 }
 
 .dashboard-btn:hover {
-  background-color: #357ab8;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
+}
+.dashboard-btn::before {
+  content: "";
+  position: absolute;
+  inset: -30% -30% auto auto;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(125, 211, 252, 0.18), transparent 65%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+.dashboard-btn::after {
+  content: "";
+  position: absolute;
+  inset: auto auto -40% -40%;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.16), transparent 65%);
+  opacity: 0.8;
+  pointer-events: none;
 }
 
 .dashboard-btn img {
-    width: 94px;
-    height: 94px;
+    width: 88px;
+    height: 88px;
     align-self: flex-end;
+    filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+}
+.dashboard-btn .dashIcon {
+    align-self: flex-end;
+    margin: 0 10px 10px 0;
+}
+.dashboard-btn .dashIcon.roleIcon {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+    letter-spacing: 0.4px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
 }
 
 /*text inside dashboard main buttons*/
 .dashboard-btn p {
     margin: 0;
-    padding-top: 10px;
-    color: #000000;
+    padding-top: 12px;
+    color: var(--text);
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.2px;
 }
 
 /*splits left and right over the wave*/
 .split {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  height: 10vh;
+  height: auto;
 }
 
 .left {
@@ -93,6 +144,7 @@ body { margin: 0; }
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+  gap: 6px;
 }
 
 /*notification bell button css*/
@@ -115,8 +167,32 @@ body { margin: 0; }
 }
 
 .app-title {
-  font-size: 2rem;     /* større hovedtittel */
-  font-weight: 600;
+  font-size: 2.2rem;     /* st??rre hovedtittel */
+  font-weight: 800;
   margin: 0;
   line-height: 1.2;
+  letter-spacing: -0.4px;
+  text-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 520px) {
+  .bottom {
+    gap: 22px;
+    padding: 32px 18px 96px;
+  }
+
+  .dashboard-btn {
+    width: 180px;
+    height: 180px;
+  }
+
+  .dashboard-btn img {
+    width: 96px;
+    height: 96px;
+  }
+}
+
+@keyframes dashIn {
+  0% { opacity: 0; transform: translateY(10px) scale(0.98); filter: blur(6px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }

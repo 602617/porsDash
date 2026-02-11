@@ -102,6 +102,49 @@ body {
   color: var(--muted);
 }
 
+.ownerLine {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rolePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.22);
+  font-size: 12px;
+  color: rgba(255,255,255,0.78);
+}
+
+.roleIcon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  background: linear-gradient(135deg, rgba(125,211,252,0.75), rgba(167,139,250,0.75));
+  color: #0b0d14;
+}
+
+.roleLabel {
+  color: rgba(255,255,255,0.60);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.roleName {
+  color: rgba(255,255,255,0.92);
+  font-weight: 700;
+}
+
 .bigReveal {
   margin-top: 6px;
   padding: 18px 16px 18px;

@@ -190,11 +190,10 @@ export default function LoanPage({
   const progress = principal > 0 ? Math.min(1, sumPaid / principal) : 0;
 
   const title = data?.title || "Private Loan";
-  const ownerLine = useMemo(() => {
-    const b = data?.borrowerUsername;
-    const l = data?.lenderUsername;
-    if (b && l) return `${b} ↔ ${l}`;
-    return "Borrower ↔ Lender";
+  const ownerInfo = useMemo(() => {
+    const b = data?.borrowerUsername || "Unknown";
+    const l = data?.lenderUsername || "Unknown";
+    return { borrower: b, lender: l };
   }, [data]);
 
   if (status === "loading" || status === "idle") {
@@ -275,8 +274,19 @@ export default function LoanPage({
 
       <header className="hero">
         <div className="heroTop">
-          <div className="chip">{title}</div>
-          <div className="sub">{ownerLine}</div>
+          
+          <div className="ownerLine">
+            <span className="rolePill">
+              <span className="roleIcon">B</span>
+              <span className="roleLabel">Borrower</span>
+              <span className="roleName">{ownerInfo.borrower}</span>
+            </span>
+            <span className="rolePill">
+              <span className="roleIcon">L</span>
+              <span className="roleLabel">Lender</span>
+              <span className="roleName">{ownerInfo.lender}</span>
+            </span>
+          </div>
         </div>
 
         <div className="bigReveal">

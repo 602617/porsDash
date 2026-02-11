@@ -46,7 +46,10 @@ function formatDate(iso: string) {
   }).format(d);
 }
 
-function useRevealOnScroll(selector = "[data-reveal]") {
+function useRevealOnScroll(
+  selector = "[data-reveal]",
+  deps: React.DependencyList = []
+) {
   useEffect(() => {
     const nodes = Array.from(document.querySelectorAll<HTMLElement>(selector));
     if (!nodes.length) return;
@@ -65,7 +68,7 @@ function useRevealOnScroll(selector = "[data-reveal]") {
 
     nodes.forEach((n) => io.observe(n));
     return () => io.disconnect();
-  }, [selector]);
+  }, [selector, ...deps]);
 }
 
 function useCountUp(target: number, ms = 1200, startDelayMs = 250) {
@@ -120,7 +123,7 @@ export default function LoanPage({
   >("idle");
   const [errMsg, setErrMsg] = useState<string>("");
 
-  useRevealOnScroll();
+  useRevealOnScroll("[data-reveal]", [status]);
 
   const token = useMemo(() => localStorage.getItem("jwt") || "", []);
 
@@ -298,7 +301,7 @@ export default function LoanPage({
           </div>
 
           <div className="hintScroll">
-            <span className="chev">⌄</span>
+            <span className="chev">v</span>
             <span>Scroll for details</span>
           </div>
         </div>

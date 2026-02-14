@@ -2,7 +2,21 @@
   min-height: 100vh;
 }
 
-/* innholdet må ha plass til nav nederst */
+.itemPage {
+  position: relative;
+  padding: 12px 12px 0;
+}
+
+/* innholdet m? ha plass til nav nederst */
 .mainen main {
-  padding-bottom: 80px; /* juster til høyden på BottomNav */
+  padding-bottom: 96px; /* juster til h?yden p? BottomNav */
+}
+
+.itemPageMain {
+  position: relative;
+  z-index: 1;
+}
+
+.itemListCard {
+  margin-top: 10px;
 }

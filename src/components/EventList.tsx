@@ -1,5 +1,5 @@
 // src/components/EventList.tsx
-import React, {useState, useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "../style/EventList.css";
 
@@ -14,21 +14,21 @@ interface EventListDto {
 function formatDateTime(iso: string) {
   const d = new Date(iso);
   const date = d.toLocaleDateString("no-NO", {
-    day:   "2-digit",
+    day: "2-digit",
     month: "long",
   });
   const time = d.toLocaleTimeString("no-NO", {
-    hour:   "2-digit",
+    hour: "2-digit",
     minute: "2-digit",
   });
   return { date, time };
 }
 
 const EventList: React.FC = () => {
-  const [events, setEvents]     = useState<EventListDto[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState<string | null>(null);
-  const api   = import.meta.env.VITE_API_BASE_URL;
+  const [events, setEvents] = useState<EventListDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const api = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem("jwt") || "";
 
   useEffect(() => {
@@ -52,38 +52,26 @@ const EventList: React.FC = () => {
     })();
   }, [api, token]);
 
-  if (loading) return <p className="p-4 text-center">Laster arrangementer…</p>;
-  if (error)   return <p className="p-4 text-center text-red-600">Feil: {error}</p>;
-  if (events.length === 0) return <p className="p-4 text-center">Ingen arrangement funnet.</p>;
+  if (loading) return <p className="eventState">Laster arrangementer...</p>;
+  if (error) return <p className="eventState eventError">Feil: {error}</p>;
+  if (events.length === 0) return <p className="eventState">Ingen arrangement funnet.</p>;
 
   return (
     <div className="event-list-container">
-      {events.map(ev => {
+      {events.map((ev) => {
         const { date: startDate, time: startTime } = formatDateTime(ev.startTime);
-        const { date: endDate,   time: endTime   } = formatDateTime(ev.endTime);
+        const { date: endDate, time: endTime } = formatDateTime(ev.endTime);
 
         return (
           <Link key={ev.id} to={`/events/${ev.id}`} className="event-card">
-            <h3 className="event-title">{ev.title}</h3>
-
-            <div className="event-time
-                            flex flex-col space-y-1
-                            sm:flex-row sm:space-y-0 sm:space-x-4
-                            text-gray-600 text-sm">
-              <div className="flex items-center space-x-1">
-                
-                <span>{startDate === endDate ? startDate : `${startDate} - ${endDate}`} kl. {startTime} - {endTime}</span>
-                <span className="hidden sm:inline">– </span>
-                
+            <div className="event-top">
+              <h3 className="event-title">{ev.title}</h3>
+              <div className="event-time">
+                <span>{startDate === endDate ? startDate : `${startDate} - ${endDate}`}</span>
+                <span className="dot">?</span>
+                <span>kl. {startTime} - {endTime}</span>
               </div>
-              <div className="flex items-center space-x-1">
-                
-                
-              </div>
-              
-            
             </div>
-
             <p className="event-created">Opprettet av: {ev.createdBy}</p>
           </Link>
         );

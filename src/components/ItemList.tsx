@@ -49,41 +49,37 @@ const ItemList: React.FC = () => {
     fetchItems();
   }, []);
 
-  if (loading) return <div className="text-center p-4">Loading...</div>;
+  if (loading) return <div className="itemLoading">Loading...</div>;
 
   return (
     
-    <div>
-      
-      <div className="grid grid-cols-2 gap-4 w-full px-2">
-      {items.length === 0 ? (
-        <p className="text-center w-full">No items found or access denied.</p>
-      ) : (
-        items.map((item) => (
-          <div
-            key={item.id}
-            className="bg-white rounded-lg shadow hover:shadow-md transition overflow-hidden"
-          >
-            <img
-              src={`https://picsum.photos/seed/${item.id}/400/200`}
-              alt="Random"
-              className="w-full h-36 object-cover"
-            />
-            <div className="p-3">
-              <p>{item.username}</p>
-              <h3 className="text-base font-semibold">{item.name}  </h3>
-              <Link
-                to={`/items/${item.id}`}
-                state={{ item }}
-                className="mt-2 inline-block px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                View details
-              </Link>
+    <div className="itemList">
+      <div className="itemGrid">
+        {items.length === 0 ? (
+          <p className="itemEmpty">No items found or access denied.</p>
+        ) : (
+          items.map((item) => (
+            <div key={item.id} className="itemCard">
+              <img
+                src={`https://picsum.photos/seed/${item.id}/400/200`}
+                alt={item.name}
+                className="itemThumb"
+              />
+              <div className="itemBody">
+                <p className="itemOwner">{item.username}</p>
+                <h3 className="itemName">{item.name}</h3>
+                <Link
+                  to={`/items/${item.id}`}
+                  state={{ item }}
+                  className="itemAction"
+                >
+                  View details
+                </Link>
+              </div>
             </div>
-          </div>
-        ))
-      )}
-    </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };

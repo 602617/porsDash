@@ -1,0 +1,97 @@
+.createEventPage {
+  position: relative;
+  min-height: 100vh;
+  padding: 12px 12px 84px;
+}
+
+.createEventMain {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.createEventCard {
+  margin-top: 12px;
+}
+
+.createEventForm {
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.15);
+}
+
+.createEventGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.req {
+  color: #fca5a5;
+}
+
+.formError {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.createEventSubmit {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.92), rgba(167, 139, 250, 0.92));
+  color: #0b0d14;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.createEventSubmit:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.createEventSubmit:disabled {
+  opacity: 0.7;
+  cursor: default;
+  transform: none;
+}
+
+@media (min-width: 640px) {
+  .createEventGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

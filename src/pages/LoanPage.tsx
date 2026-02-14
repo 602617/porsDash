@@ -371,7 +371,6 @@ export default function LoanPage({
         <div className="sectionTitle">Privacy</div>
         <p className="fine">
           Only the <b>borrower</b> and <b>lender</b> can view or change this loan.
-          Anyone else will still get <b>403 Forbidden</b>.
         </p>
       </section>
 

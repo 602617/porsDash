@@ -1,0 +1,81 @@
+.profilePage {
+  position: relative;
+  min-height: 100vh;
+  padding: 0 0 84px;
+}
+
+.profileMain {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.profileState {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.profileError {
+  color: #fca5a5;
+}
+
+.profileCard {
+  margin-top: 10px;
+  display: grid;
+  gap: 12px;
+  text-align: center;
+}
+
+.profileAvatarWrap {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.profileAvatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+.profileMeta {
+  display: grid;
+  gap: 4px;
+}
+
+.metaLabel {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.metaValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.profileLogout {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.profileLogout:hover {
+  background: rgba(248, 113, 113, 0.22);
+}
+
+.profileProducts {
+  margin-top: 12px;
+}

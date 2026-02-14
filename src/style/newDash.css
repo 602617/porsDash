@@ -3,7 +3,7 @@
   background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
   backdrop-filter: blur(14px);
   box-shadow: var(--shadow);
-  padding: 40px 20px 60px; /* ekstra bunn-padding så bølgen får plass */
+  padding: 24px 20px 60px; /* ekstra bunn-padding så bølgen får plass */
   text-align: center;
   overflow: hidden;        /* klipp alt som stikker utenfor */
 }

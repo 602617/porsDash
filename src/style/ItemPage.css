@@ -4,7 +4,7 @@
 
 .itemPage {
   position: relative;
-  padding: 12px 12px 0;
+  padding: 0;
 }
 
 /* innholdet m? ha plass til nav nederst */
@@ -15,8 +15,10 @@
 .itemPageMain {
   position: relative;
   z-index: 1;
+  width: 100%;
 }
 
 .itemListCard {
   margin-top: 10px;
+  width: 100%;
 }

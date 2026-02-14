@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import "../style/ItemAvailabilityEditor.css";
 
 interface Slot {
   id: number;
@@ -11,21 +12,19 @@ interface Props {
 }
 
 const ItemAvailabilityEditor: React.FC<Props> = ({ itemId }) => {
-  const [slots, setSlots]     = useState<Slot[]>([]);
+  const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [newStart, setNewStart] = useState("");
-  const [newEnd,   setNewEnd]   = useState("");
-  const api   = import.meta.env.VITE_API_BASE_URL;
+  const [newEnd, setNewEnd] = useState("");
+  const api = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem("jwt") || "";
 
-  // Hent eksisterende blokker
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(
-          `${api}/api/items/${itemId}/unavailability`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const res = await fetch(`${api}/api/items/${itemId}/unavailability`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (res.ok) setSlots(await res.json());
       } catch (e) {
         console.error(e);
@@ -37,22 +36,19 @@ const ItemAvailabilityEditor: React.FC<Props> = ({ itemId }) => {
 
   const handleAddBlock = async () => {
     if (!newStart || !newEnd) {
-      return alert("Velg både start og slutt");
+      return alert("Velg b?de start og slutt");
     }
-    const res = await fetch(
-      `${api}/api/items/${itemId}/unavailability`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ startTime: newStart, endTime: newEnd }),
-      }
-    );
+    const res = await fetch(`${api}/api/items/${itemId}/unavailability`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ startTime: newStart, endTime: newEnd }),
+    });
     if (res.ok) {
       const created: Slot = await res.json();
-      setSlots(prev => [...prev, created]);
+      setSlots((prev) => [...prev, created]);
       setNewStart("");
       setNewEnd("");
     } else {
@@ -60,46 +56,40 @@ const ItemAvailabilityEditor: React.FC<Props> = ({ itemId }) => {
     }
   };
 
-  if (loading) return <p>Henter tilgjengelighet…</p>;
+  if (loading) return <p className="availabilityState">Henter tilgjengelighet...</p>;
 
   return (
-    <div className="mb-8 p-4 bg-gray-50 rounded shadow">
-      <h4 className="font-semibold mb-2">Administrer ikke-ledig</h4>
+    <div className="availabilityCard">
+      <h4 className="availabilityTitle">Administrer ikke-ledig</h4>
 
-      {/* Skjema for å blokkere periode */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <label>Start</label>
+      <div className="availabilityGrid">
+        <label className="availabilityField">
+          <span>Start</span>
           <input
             type="datetime-local"
             value={newStart}
-            onChange={e => setNewStart(e.target.value)}
-            className="block w-full p-1 border rounded"
+            onChange={(e) => setNewStart(e.target.value)}
           />
-        </div>
-        <div>
-          <label>Slutt</label>
+        </label>
+        <label className="availabilityField">
+          <span>Slutt</span>
           <input
             type="datetime-local"
             value={newEnd}
-            onChange={e => setNewEnd(e.target.value)}
-            className="block w-full p-1 border rounded"
+            onChange={(e) => setNewEnd(e.target.value)}
           />
-        </div>
+        </label>
       </div>
-      <button
-        onClick={handleAddBlock}
-        className="mb-4 px-4 py-2 bg-red-600 text-white rounded"
-      >
+      <button onClick={handleAddBlock} className="availabilityBtn">
         Legg til blokk
       </button>
 
-      {/* Liste over blokk-perioder */}
-      <ul className="space-y-2">
-        {slots.map(s => (
-          <li key={s.id} className="p-2 border rounded">
-            {new Date(s.startTime).toLocaleString()} —{" "}
-            {new Date(s.endTime).toLocaleString()}
+      <ul className="availabilityList">
+        {slots.map((s) => (
+          <li key={s.id} className="availabilityItem">
+            <span>{new Date(s.startTime).toLocaleString()}</span>
+            <span className="availabilityArrow">?</span>
+            <span>{new Date(s.endTime).toLocaleString()}</span>
           </li>
         ))}
       </ul>

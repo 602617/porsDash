@@ -1,11 +1,12 @@
 .dugnadPage {
   position: relative;
-  padding: 12px 12px 0;
+  padding: 0;
 }
 
 .dugnadMain {
   position: relative;
   z-index: 1;
+  width: 100%;
 }
 
 .dugnadActions {
@@ -16,6 +17,7 @@
 
 .dugnadList {
   margin-top: 12px;
+  width: 100%;
 }
 
 .new-event-btn {

@@ -1,60 +1,62 @@
-import React, { useState } from 'react';
-import type { FormEvent } from 'react';
+import React, { useState } from "react";
+import type { FormEvent } from "react";
 
 const AddItemForm: React.FC = () => {
-  const [name, setName] = useState('');
-  const [message, setMessage] = useState('');
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setMessage('');
+    setMessage("");
 
-    const token = localStorage.getItem('jwt');
+    const token = localStorage.getItem("jwt");
     if (!token) {
-      setMessage('You must be logged in');
+      setMessage("Du m?? v??re logget inn");
       return;
     }
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/items`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name }),
       });
 
       if (response.ok) {
-        setMessage('Item added!');
-        setName('');
+        setMessage("Produkt lagt til!");
+        setName("");
       } else {
         const errorText = await response.text();
-        setMessage(`Error: ${errorText}`);
+        setMessage(`Feil: ${errorText}`);
       }
     } catch (err) {
       console.error(err);
-      setMessage('Something went wrong');
+      setMessage("Noe gikk galt");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 400, margin: '2rem auto' }}>
-      <h2>Add Product</h2>
-      <input
-        type="text"
-        value={name}
-        placeholder="Product name"
-        onChange={(e) => setName(e.target.value)}
-        style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem' }}
-        required
-      />
-      <button type="submit" style={{ padding: '0.5rem 1rem' }}>
-        Add
+    <form onSubmit={handleSubmit} className="addItemForm">
+      <h3 className="addItemTitle">Legg til produkt</h3>
+      <label className="field">
+        <span>Produktnavn</span>
+        <input
+          type="text"
+          value={name}
+          placeholder="F.eks. Drill, stige, henger"
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+      </label>
+      <button type="submit" className="primaryBtn">
+        Legg til
       </button>
-      {message && <p style={{ marginTop: '1rem' }}>{message}</p>}
+      {message && <p className="addItemMessage">{message}</p>}
     </form>
   );
 };

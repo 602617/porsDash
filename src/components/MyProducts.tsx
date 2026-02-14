@@ -44,79 +44,70 @@ const MyProducts: React.FC = () => {
   };
 
   const handleDelete = async (itemId: number) => {
-  const token = localStorage.getItem("jwt");
-  const res = await fetch(`${apiBaseUrl}/api/items/${itemId}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  if (res.ok) {
-    setItems(prev => prev.filter(i => i.id !== itemId));
-    setEditItemId(null);
-  } else {
-    alert("Kunne ikke slette produkt");
-  }
-};
-
+    const token = localStorage.getItem("jwt");
+    const res = await fetch(`${apiBaseUrl}/api/items/${itemId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setItems((prev) => prev.filter((i) => i.id !== itemId));
+      setEditItemId(null);
+    } else {
+      alert("Kunne ikke slette produkt");
+    }
+  };
 
   return (
-    <div style={{ padding: "2rem" }}>
-      
-
-      <div className="flex justify-center mb-8">
-        <button
-          onClick={() => setShowForm((s) => !s)}
-          className="button-add"
-        >
-          Legg til produkt
+    <div className="myProductsWrap">
+      <div className="myProductsActions">
+        <button onClick={() => setShowForm((s) => !s)} className="primaryBtn">
+          {showForm ? "Skjul skjema" : "Legg til produkt"}
         </button>
       </div>
+
       {showForm && (
-        <div className="flex justify-center mb-8">
+        <div className="myProductsForm">
           <AddItemForm />
         </div>
       )}
 
       {loading ? (
-        <p>Laster…</p>
+        <p className="myProductsState">Laster...</p>
       ) : items.length === 0 ? (
-        <p>Ingen produkter funnet.</p>
+        <p className="myProductsState">Ingen produkter funnet.</p>
       ) : (
-        <div className="card-list">
+        <div className="myProductsGrid">
           {items.map((item) => (
-            <div key={item.id} className="card">
+            <div key={item.id} className="myProductCard">
               <img
                 src={`https://picsum.photos/seed/${item.id}/400/200`}
                 alt={item.name}
-                className="w-full h-36 object-cover"
+                className="myProductThumb"
               />
-              <h3 className="font-semibold mt-2">{item.name}</h3>
+              <div className="myProductBody">
+                <h3 className="myProductTitle">{item.name}</h3>
+                <button
+                  className="ghostBtn"
+                  onClick={() =>
+                    setEditItemId((cur) => (cur === item.id ? null : item.id))
+                  }
+                >
+                  {editItemId === item.id ? "Avbryt" : "Rediger"}
+                </button>
 
-              <button
-                className="mt-2 px-3 py-1 border rounded"
-                onClick={() =>
-                  setEditItemId((cur) =>
-                    cur === item.id ? null : item.id
-                  )
-                }
-              >
-                {editItemId === item.id ? "Avbryt" : "Edit"}
-              </button>
-
-             {editItemId === item.id && (
-                <>
-                  <div className="mt-4">
+                {editItemId === item.id && (
+                  <div className="myProductEditor">
                     <EditItemForm
                       itemId={item.id}
                       currentName={item.name}
                       onClose={() => setEditItemId(null)}
-                      onUpdate={newName => handleUpdate(item.id, newName)}
-                      onDelete={() => handleDelete(item.id)}    // ← here
+                      onUpdate={(newName) => handleUpdate(item.id, newName)}
+                      onDelete={() => handleDelete(item.id)}
                     />
+                    <ItemAvailabilityEditor itemId={item.id} />
                   </div>
-                  <ItemAvailabilityEditor itemId={item.id} />
-                </>
-              )}
-
+                )}
+              </div>
             </div>
           ))}
         </div>

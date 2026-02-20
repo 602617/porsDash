@@ -16,7 +16,7 @@ export default function BottomNav() {
       </NavLink>
 
       <NavLink 
-        to="/items" 
+        to="/notifications" 
         className={({ isActive }) => "tab" + (isActive ? " active" : "")}
       >
         <img src={bellIcon} alt="Varsler ikon" />

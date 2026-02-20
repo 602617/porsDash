@@ -1,0 +1,82 @@
+.notificationsPage {
+  position: relative;
+  min-height: 100vh;
+  padding: 0 0 84px;
+}
+
+.notificationsMain {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.notificationsCard {
+  margin-top: 10px;
+}
+
+.notificationsState {
+  margin: 0;
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.notificationsError {
+  color: #fca5a5;
+}
+
+.notificationsList {
+  display: grid;
+  gap: 10px;
+}
+
+.notificationItem {
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.22);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.notificationMessage {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.notificationActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notificationLink {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notificationLink:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.notificationMute {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notificationMute:hover {
+  color: var(--text);
+}

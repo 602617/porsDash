@@ -196,3 +196,53 @@
   0% { opacity: 0; transform: translateY(10px) scale(0.98); filter: blur(6px); }
   100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
+
+.notifPrompt {
+  margin: 10px 12px 0;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: var(--shadow);
+}
+
+.notifPromptText {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.notifPromptActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.notifPromptBtn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.92), rgba(167, 139, 250, 0.92));
+  color: #0b0d14;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.notifPromptDismiss {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notifPromptStatus {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}

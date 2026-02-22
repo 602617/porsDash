@@ -1,13 +1,14 @@
 import { useEffect } from "react";
-import React from "react";
+import type { FC } from "react";
 import "../style/LoanPage.css";
 import "../style/newDash.css";
 import BottomNav from "./BottomNav";
 import { Link } from "react-router-dom";
+import NotificationPrompt from "./NotificationPrompt";
 
 import notifyBell from "../assets/NotificationBell.png";
 
-const NewDash: React.FC = () => {
+const NewDash: FC = () => {
   useEffect(() => {
     document.body.style.backgroundImage = "none";
     return () => {
@@ -18,6 +19,7 @@ const NewDash: React.FC = () => {
   return (
     <div>
       <div className="bgGlow" />
+      <NotificationPrompt />
       <section className="top">
         <div className="split">
           <div className="left">

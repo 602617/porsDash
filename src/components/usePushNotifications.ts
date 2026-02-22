@@ -15,9 +15,13 @@ export async function subscribeUser() {
   })
 
   // 4. Send abonnementet til backend
+  const token = localStorage.getItem("jwt") || "";
   await fetch('/api/push/subscribe', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(sub)
   })
 

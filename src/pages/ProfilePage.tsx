@@ -7,6 +7,7 @@ import { PageHeader } from "../components/PageHeaderProps";
 import "../style/ProfilePage.css";
 import "../style/LoanPage.css";
 import BottomNav from "../components/BottomNav";
+import PushNotificationSettings from "../components/PushNotificationSettings";
 
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -78,8 +79,7 @@ const ProfilePage: React.FC = () => {
               <span className="roleName">{user.username}</span>
             </div>
           </div>
-          
-          
+          <PushNotificationSettings />
         </section>
 
         <section className="section card profileProducts">
@@ -87,8 +87,8 @@ const ProfilePage: React.FC = () => {
           <MyProducts />
         </section>
         <button onClick={handleLogout} className="profileLogout">
-            Logg ut
-          </button>
+          Logg ut
+        </button>
       </main>
       <BottomNav />
     </div>

@@ -14,12 +14,13 @@ import ItemDetailPage from './pages/ItemDetailPage.tsx'
 import DugnadPage from './pages/Dugnad.tsx'
 import EventDetail from './components/EventDetail.tsx'
 import NewDash from './components/newDash.tsx'
-
+import TestPage from './pages/testPage.tsx'
 import { registerSW } from 'virtual:pwa-register';
 import CreateEventForm from './components/CreateEvent.tsx'
 import ShoppingLists from './pages/ShoppingLists.tsx'
 import LoanPage from './pages/LoanPage.tsx'
 import NotificationsPage from './pages/NotificationsPage.tsx'
+import GamePage from './pages/GamePage.tsx'
 
 
 registerSW({
@@ -65,6 +66,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path='/nyevent' element={<CreateEventForm />} />
       <Route path='/loan' element={<LoanPage loanId={2} baseUrl={import.meta.env.VITE_API_BASE_URL ?? ""} />} />
       <Route path='/notifications' element={<NotificationsPage />} />
+      <Route path='/testpage' element={<TestPage />} />
+      <Route path='/game' element={<GamePage />} />
     </Routes>
   </BrowserRouter>
 </React.StrictMode>,

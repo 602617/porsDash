@@ -67,6 +67,10 @@ const NewDash: FC = () => {
             <p>Lån</p>
             <span className="dashIcon roleIcon" aria-hidden="true">L</span>
           </Link>
+          <Link to="/game" className="dashboard-btn" style={{ animationDelay: "320ms" }}>
+            <p>Dash Game</p>
+            <span className="dashIcon roleIcon" aria-hidden="true">L</span>
+          </Link>
         </div>
       </section>
 

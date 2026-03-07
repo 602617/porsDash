@@ -21,7 +21,6 @@ export default class BoardScene extends Phaser.Scene {
   private coinGridY = 0
   private coinsCollected = 0
   private score = 0
-  private lastWaveScore = 0
   private waveActive = false
   private visitCounts: number[][] = []
 
@@ -326,7 +325,6 @@ export default class BoardScene extends Phaser.Scene {
     const previousBucket = Math.floor(previousScore / 100)
     const nextBucket = Math.floor(this.score / 100)
     if (nextBucket > previousBucket) {
-      this.lastWaveScore = nextBucket * 100
       this.spawnRainbowWave()
     }
   }

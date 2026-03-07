@@ -83,7 +83,7 @@ export default function GamePage() {
         height: '100vh',
         margin: 0,
         overflow: 'hidden',
-        background: '#1e1e1e',
+        background: '#282325',
       }}
     >
       <style>{`
@@ -99,7 +99,7 @@ export default function GamePage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#ffffff',
+          color: '#e5cec9',
           fontSize: '20px',
           fontWeight: 700,
         }}
@@ -123,7 +123,7 @@ export default function GamePage() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '16px',
-            color: '#ffffff',
+            color: '#e5cec9',
           }}
         >
           <h1 style={{ margin: 0 }}>Dashboard Dash</h1>
@@ -135,8 +135,8 @@ export default function GamePage() {
               padding: '12px 20px',
               borderRadius: '999px',
               border: 'none',
-              background: '#00ff88',
-              color: '#0b0b0b',
+              background: '#eda16b',
+              color: '#282325',
               fontWeight: 700,
               cursor: countdown === null ? 'pointer' : 'default',
             }}
@@ -158,7 +158,7 @@ export default function GamePage() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '16px',
-            color: '#ffffff',
+            color: '#e5cec9',
           }}
         >
           <p style={{ margin: 0, fontWeight: 700, fontSize: '28px' }}>Score: {score}</p>
@@ -168,8 +168,8 @@ export default function GamePage() {
               padding: '12px 20px',
               borderRadius: '999px',
               border: 'none',
-              background: '#00ff88',
-              color: '#0b0b0b',
+              background: '#eda16b',
+              color: '#282325',
               fontWeight: 700,
               cursor: 'pointer',
             }}

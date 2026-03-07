@@ -7,7 +7,7 @@ export function createGame(container: HTMLDivElement) {
     parent: container,
     width: container.clientWidth || window.innerWidth,
     height: container.clientHeight || window.innerHeight,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#282325',
     scene: [BoardScene],
     scale: {
       mode: Phaser.Scale.RESIZE,

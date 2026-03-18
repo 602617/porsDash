@@ -15,7 +15,6 @@ import DugnadPage from './pages/Dugnad.tsx'
 import EventDetail from './components/EventDetail.tsx'
 import NewDash from './components/newDash.tsx'
 import TestPage from './pages/testPage.tsx'
-import { registerSW } from 'virtual:pwa-register';
 import CreateEventForm from './components/CreateEvent.tsx'
 import ShoppingLists from './pages/ShoppingLists.tsx'
 import LoanPage from './pages/LoanPage.tsx'
@@ -23,29 +22,28 @@ import NotificationsPage from './pages/NotificationsPage.tsx'
 import GamePage from './pages/GamePage.tsx'
 
 
-registerSW({
-  onRegistered(r: ServiceWorkerRegistration | undefined) {
-    // r is the service worker registration object
-    // you could hold onto it to force an update later
-    console.log('Service worker registered:', r);
-  },
-  onNeedRefresh() {
-    // called when a new version of the SW + assets is available
-    // you might show a “New version available” banner here
-    console.log('New version available – please refresh');
-  },
-  onOfflineReady() {
-    // called when the app is fully cached for offline use
-    console.log('App ready for offline use');
-  }
-});
-
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
-    .register("/sw.js")
-    .then(() => navigator.serviceWorker.ready)
-    .catch((err) => console.error("SW registration failed:", err));
+    .getRegistrations()
+    .then((registrations) => {
+      registrations.forEach((registration) => {
+        const scriptUrl = registration.active?.scriptURL || ''
+        if (!scriptUrl.endsWith('/sw.js')) {
+          console.log('[sw] Unregistering non-/sw.js worker:', scriptUrl)
+          registration.unregister()
+        }
+      })
+    })
+    .catch((err) => console.error('[sw] Failed to list registrations:', err))
+
+  navigator.serviceWorker
+    .register('/sw.js')
+    .then((registration) => {
+      console.log('[sw] Service worker registered:', registration)
+    })
+    .catch((err) => console.error('[sw] Registration failed:', err))
 }
+
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -72,3 +70,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </BrowserRouter>
 </React.StrictMode>,
 )
+

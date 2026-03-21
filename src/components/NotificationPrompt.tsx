@@ -10,9 +10,32 @@ export default function NotificationPrompt() {
   const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     const dismissed = localStorage.getItem(DISMISSED_KEY) === "1";
-    const permission = Notification.permission;
-    setHidden(dismissed || permission === "granted");
+    if (dismissed) {
+      setHidden(true);
+      return;
+    }
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setHidden(true);
+      return;
+    }
+    (async () => {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+        if (!registration) {
+          if (isMounted) setHidden(false);
+          return;
+        }
+        const sub = await registration.pushManager.getSubscription();
+        if (isMounted) setHidden(!!sub);
+      } catch {
+        if (isMounted) setHidden(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleEnable = async () => {

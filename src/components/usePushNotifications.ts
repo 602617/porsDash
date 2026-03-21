@@ -1,5 +1,5 @@
 const vapidPublicKey =
-  'BOQL-1ki3v1P3cf65Yey4tZqFvXjjpOlk5xGZp75M-YB2C8hyPhdir0XP560gJ0EaroD5hdAoeXigzs2p1GmrNA'
+  'BBxrxH_ezwzArIMPuGbfqYUGnNFEJnjgc-XY2Oxzj8mZncaZYVXcrS1lzODR9cdJCqtO1Tdc1ixhtvck11_WCMs'
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
 
 function urlBase64ToUint8Array(base64String: string) {

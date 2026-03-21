@@ -1,5 +1,4 @@
-const vapidPublicKey =
-  'BBxrxH_ezwzArIMPuGbfqYUGnNFEJnjgc-XY2Oxzj8mZncaZYVXcrS1lzODR9cdJCqtO1Tdc1ixhtvck11_WCMs'
+const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || ''
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -24,6 +23,16 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string) {
   }) as Promise<T>
 }
 
+function sameKey(a: ArrayBuffer | null, b: Uint8Array) {
+  if (!a) return false
+  const left = new Uint8Array(a)
+  if (left.byteLength !== b.byteLength) return false
+  for (let i = 0; i < left.byteLength; i += 1) {
+    if (left[i] !== b[i]) return false
+  }
+  return true
+}
+
 async function getPushRegistration() {
   const existing = await navigator.serviceWorker.getRegistration('/sw.js')
   if (existing) {
@@ -41,6 +50,9 @@ async function getPushRegistration() {
 
 export async function subscribeUser() {
   console.log('[push] subscribeUser called')
+  if (!vapidPublicKey) {
+    throw new Error('VAPID public key mangler. Sett VITE_VAPID_PUBLIC_KEY.')
+  }
   if (!('Notification' in window)) {
     throw new Error('Varsler er ikke tilgjengelig i denne nettleseren.')
   }
@@ -62,18 +74,24 @@ export async function subscribeUser() {
   // 2. Hent SW-registreringen
   const reg = await getPushRegistration()
   console.log('[push] Registration scope:', reg.scope)
+  const appServerKey = urlBase64ToUint8Array(vapidPublicKey)
   const existingSub = await reg.pushManager.getSubscription()
   if (existingSub) {
-    console.log('[push] Reusing existing subscription')
-    console.log('[push] Subscription endpoint:', existingSub.endpoint)
-    return existingSub
+    const existingKey = existingSub.options?.applicationServerKey ?? null
+    if (!sameKey(existingKey, appServerKey)) {
+      console.log('[push] Existing subscription uses old VAPID key, resubscribing')
+      await existingSub.unsubscribe()
+    } else {
+      console.log('[push] Reusing existing subscription')
+      console.log('[push] Subscription endpoint:', existingSub.endpoint)
+      return existingSub
+    }
   }
 
   // 3. Abonner på PushManager
   console.log('[push] Creating new subscription')
   let sub: PushSubscription
   try {
-    const appServerKey = urlBase64ToUint8Array(vapidPublicKey)
     console.log('[push] VAPID key length:', appServerKey.byteLength)
     sub = await withTimeout(
       reg.pushManager.subscribe({

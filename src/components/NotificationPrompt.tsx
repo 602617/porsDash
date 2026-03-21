@@ -8,6 +8,7 @@ export default function NotificationPrompt() {
   const [status, setStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isSupported, setIsSupported] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -16,8 +17,10 @@ export default function NotificationPrompt() {
       setHidden(true);
       return;
     }
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-      setHidden(true);
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setIsSupported(false);
+      setHidden(false);
+      setStatus("Varsler støttes ikke her. Prøv Edge/Chrome eller installer som app på iOS.");
       return;
     }
     (async () => {
@@ -78,10 +81,10 @@ export default function NotificationPrompt() {
         Slå på varsler for oppdateringer om booking og arrangement.
       </div>
       <div className="notifPromptActions">
-        <button className="notifPromptBtn" onClick={handleEnable} disabled={isSubmitting}>
+        <button className="notifPromptBtn" onClick={handleEnable} disabled={!isSupported || isSubmitting}>
           {isSubmitting ? "Aktiverer..." : "Aktiver varsler"}
         </button>
-        <button className="notifPromptBtn" onClick={handleTest} disabled={isTesting}>
+        <button className="notifPromptBtn" onClick={handleTest} disabled={!isSupported || isTesting}>
           {isTesting ? "Tester..." : "Test push notification"}
         </button>
         <button className="notifPromptDismiss" onClick={handleDismiss}>

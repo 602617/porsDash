@@ -14,17 +14,28 @@ function urlBase64ToUint8Array(base64String: string) {
 
   return outputArray
 }
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  const timeout = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId)
+  }) as Promise<T>
+}
 
 async function getPushRegistration() {
   const existing = await navigator.serviceWorker.getRegistration('/sw.js')
   if (existing) {
     console.log('[push] Using existing /sw.js registration', existing.scope)
     await navigator.serviceWorker.ready
+    console.log('[push] Service worker ready', existing.active?.state)
     return existing
   }
   console.log('[push] Registering /sw.js service worker')
   const registration = await navigator.serviceWorker.register('/sw.js')
   await navigator.serviceWorker.ready
+  console.log('[push] Service worker ready after register', registration.active?.state)
   return registration
 }
 
@@ -60,10 +71,23 @@ export async function subscribeUser() {
 
   // 3. Abonner på PushManager
   console.log('[push] Creating new subscription')
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-  })
+  let sub: PushSubscription
+  try {
+    const appServerKey = urlBase64ToUint8Array(vapidPublicKey)
+    console.log('[push] VAPID key length:', appServerKey.byteLength)
+    sub = await withTimeout(
+      reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appServerKey,
+      }),
+      10000,
+      'Push-abonnement tok for lang tid. Proev aa oppdatere siden.'
+    )
+  } catch (err) {
+    console.error('[push] Failed to create subscription', err)
+    const message = err instanceof Error ? err.message : 'Ukjent feil ved abonnement.'
+    throw new Error(message)
+  }
   console.log('[push] Subscription endpoint:', sub.endpoint)
 
   // 4. Send abonnementet til backend
@@ -135,3 +159,6 @@ export async function testPushNotification() {
   }
   return true
 }
+
+
+

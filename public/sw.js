@@ -21,6 +21,8 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title || 'Notification', {
       body: data.body || '',
       icon: '/icon.png',
+      badge: '/icon.png',
+      tag: data.tag || 'porsdash',
       data: {
         url: data.url || '/',
       },
@@ -31,16 +33,16 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  const url = event.notification?.data?.url || '/'
+  const target = new URL(event.notification?.data?.url || '/', self.location.origin).href
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url === url && 'focus' in client) {
+        if (client.url === target && 'focus' in client) {
           return client.focus()
         }
       }
-      return clients.openWindow(url)
+      return clients.openWindow(target)
     })
   )
 })

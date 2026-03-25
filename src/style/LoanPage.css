@@ -349,6 +349,14 @@
   outline: none;
 }
 
+.formField input[type="datetime-local"] {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .formField textarea {
   resize: vertical;
   min-height: 84px;
@@ -642,6 +650,7 @@
 .loanModal {
   width: min(520px, 92vw);
   max-width: 92vw;
+  box-sizing: border-box;
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,0.12);
   background:
@@ -649,6 +658,10 @@
     linear-gradient(180deg, rgba(24, 28, 36, 0.92), rgba(10, 12, 18, 0.92));
   box-shadow: 0 24px 60px rgba(0,0,0,0.45);
   padding: 16px;
+}
+
+.loanModal * {
+  box-sizing: border-box;
 }
 
 .loanModal.small {

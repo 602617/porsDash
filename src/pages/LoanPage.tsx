@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../style/LoanPage.css";
 
 type LoanPayment = {
@@ -105,6 +105,14 @@ function useCountUp(target: number, ms = 1200, startDelayMs = 250) {
   return value;
 }
 
+function toLocalDateTimeInput(iso: string) {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+}
+
 type Props = {
   loanId: number | string;
   baseUrl?: string; // e.g. import.meta.env.VITE_API_BASE_URL
@@ -126,22 +134,41 @@ export default function LoanPage({
   useRevealOnScroll("[data-reveal]", [status]);
 
   const token = useMemo(() => localStorage.getItem("jwt") || "", []);
+  const authHeader = useMemo(
+    () => (useBearerPrefix ? `Bearer ${token}` : token),
+    [token, useBearerPrefix]
+  );
 
-  useEffect(() => {
-    let alive = true;
+  const [formAmount, setFormAmount] = useState("");
+  const [formPaidAt, setFormPaidAt] = useState("");
+  const [formNote, setFormNote] = useState("");
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formStatus, setFormStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
+  const [formMsg, setFormMsg] = useState("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isActionOpen, setIsActionOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<LoanPayment | null>(null);
+  const [actionStatus, setActionStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
+  const [actionMsg, setActionMsg] = useState("");
 
-    async function run() {
+  const fetchLoan = useCallback(
+    async (opts: { silent?: boolean } = {}) => {
       if (!token) {
         setStatus("unauthorized");
         return;
       }
 
-      setStatus("loading");
-      setErrMsg("");
+      if (!opts.silent) {
+        setStatus("loading");
+        setErrMsg("");
+      }
 
       try {
-        const authHeader = useBearerPrefix ? `Bearer ${token}` : token;
-
         const res = await fetch(`${baseUrl}/api/loans/${loanId}`, {
           method: "GET",
           headers: {
@@ -149,8 +176,6 @@ export default function LoanPage({
             Authorization: authHeader,
           },
         });
-
-        if (!alive) return;
 
         if (res.status === 401) {
           setStatus("unauthorized");
@@ -171,17 +196,16 @@ export default function LoanPage({
         setData(json);
         setStatus("ok");
       } catch (e: unknown) {
-        if (!alive) return;
         setStatus("error");
         setErrMsg(e instanceof Error ? e.message : "Unknown error");
       }
-    }
+    },
+    [authHeader, baseUrl, loanId, token]
+  );
 
-    run();
-    return () => {
-      alive = false;
-    };
-  }, [baseUrl, loanId, token, useBearerPrefix]);
+  useEffect(() => {
+    fetchLoan();
+  }, [fetchLoan]);
 
   const principal = useMemo(() => toNumber(data?.principalAmount), [data]);
   const sumPaid = useMemo(() => toNumber(data?.sumPaid), [data]);
@@ -260,6 +284,137 @@ export default function LoanPage({
   }
 
   const history = data?.history ?? [];
+  const resetForm = (opts: { keepNotice?: boolean } = {}) => {
+    setFormAmount("");
+    setFormPaidAt("");
+    setFormNote("");
+    setFormMode("create");
+    setEditingId(null);
+    if (!opts.keepNotice) {
+      setFormStatus("idle");
+      setFormMsg("");
+    }
+  };
+
+  const handleEdit = (payment: LoanPayment) => {
+    setFormMode("edit");
+    setEditingId(payment.id);
+    setFormAmount(String(payment.amount ?? ""));
+    setFormPaidAt(payment.paidAt ? toLocalDateTimeInput(payment.paidAt) : "");
+    setFormNote(payment.note ? String(payment.note) : "");
+    setFormStatus("idle");
+    setFormMsg("");
+    setIsFormOpen(true);
+  };
+
+  const applyMonthlyNote = () => {
+    setFormNote("Fast månedlig betaling");
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!formAmount.trim()) {
+      setFormStatus("error");
+      setFormMsg("Amount is required.");
+      return;
+    }
+
+    const paidAtIso = formPaidAt ? new Date(formPaidAt).toISOString() : undefined;
+    const note = formNote.trim();
+    const payload = {
+      amount: formAmount.trim(),
+      paidAt: paidAtIso,
+      note: note ? note : undefined,
+    };
+
+    setFormStatus("submitting");
+    setFormMsg("");
+
+    const endpoint =
+      formMode === "edit" && editingId != null
+        ? `${baseUrl}/api/loans/payments/${editingId}`
+        : `${baseUrl}/api/loans/${loanId}/payments`;
+    const method = formMode === "edit" ? "PUT" : "POST";
+
+    try {
+      const res = await fetch(endpoint, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        setFormStatus("error");
+        setFormMsg(text || `Request failed: ${res.status}`);
+        return;
+      }
+
+      await fetchLoan({ silent: true });
+      setFormStatus("success");
+      setFormMsg(formMode === "edit" ? "Payment updated." : "Payment added.");
+      resetForm({ keepNotice: true });
+      setIsFormOpen(false);
+    } catch (e: unknown) {
+      setFormStatus("error");
+      setFormMsg(e instanceof Error ? e.message : "Unknown error");
+    }
+  };
+
+  const handleDelete = async (paymentId: number) => {
+    setActionStatus("submitting");
+    setActionMsg("");
+    try {
+      const res = await fetch(`${baseUrl}/api/loans/payments/${paymentId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: authHeader,
+        },
+      });
+
+      if (!res.ok && res.status !== 204) {
+        const text = await res.text().catch(() => "");
+        setActionStatus("error");
+        setActionMsg(text || `Delete failed: ${res.status}`);
+        return;
+      }
+
+      await fetchLoan({ silent: true });
+      setActionStatus("success");
+      setActionMsg("Payment deleted.");
+      if (editingId === paymentId) resetForm({ keepNotice: true });
+      setIsActionOpen(false);
+    } catch (e: unknown) {
+      setActionStatus("error");
+      setActionMsg(e instanceof Error ? e.message : "Unknown error");
+    }
+  };
+
+  const openAddModal = () => {
+    resetForm();
+    setIsFormOpen(true);
+  };
+
+  const closeFormModal = () => {
+    setIsFormOpen(false);
+    resetForm();
+  };
+
+  const openActionModal = (payment: LoanPayment) => {
+    setSelectedPayment(payment);
+    setActionStatus("idle");
+    setActionMsg("");
+    setIsActionOpen(true);
+  };
+
+  const closeActionModal = () => {
+    setIsActionOpen(false);
+    setActionStatus("idle");
+    setActionMsg("");
+  };
 
   return (
     <div className="loanPage">
@@ -268,7 +423,9 @@ export default function LoanPage({
       <div className="miniBar">
         <div className="miniTitle">{title}</div>
         <div className="miniRight">
-          <div className="miniPill">{formatNOK(sumLeft)} left</div>
+          <button className="miniAction" type="button" onClick={openAddModal}>
+            +
+          </button>
         </div>
       </div>
 
@@ -348,8 +505,13 @@ export default function LoanPage({
           <div className="list">
             {history.map((p, idx) => {
               const amount = toNumber(p.amount);
+              const isMonthlyNote = p.note === "Fast månedlig betaling";
               return (
-                <div className="row" key={p.id} style={{ animationDelay: `${80 + idx * 45}ms` }}>
+                <div
+                  className={`row${isMonthlyNote ? " rowMonthly" : ""}`}
+                  key={p.id}
+                  style={{ animationDelay: `${80 + idx * 45}ms` }}
+                >
                   <div className="rowLeft">
                     <div className="rowAmount">{formatNOK(amount)}</div>
                     <div className="rowMeta">
@@ -359,7 +521,11 @@ export default function LoanPage({
                     </div>
                     {p.note ? <div className="rowNote">{p.note}</div> : null}
                   </div>
-                  <div className="rowBadge">#{p.id}</div>
+                  <div className="rowRight">
+                    <button className="rowMenu" type="button" onClick={() => openActionModal(p)}>
+                      ...
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -373,6 +539,122 @@ export default function LoanPage({
           Only the <b>borrower</b> and <b>lender</b> can view or change this loan.
         </p>
       </section>
+
+      {isFormOpen ? (
+        <div className="loanModalBackdrop" onClick={closeFormModal}>
+          <div className="loanModal" onClick={(e) => e.stopPropagation()}>
+            <div className="loanModalHeader">
+              <div className="loanModalTitle">
+                {formMode === "edit" ? "Edit payment" : "Add payment"}
+              </div>
+              <button
+                className="loanModalClose"
+                type="button"
+                onClick={closeFormModal}
+              >x</button>
+            </div>
+            <form className="loanForm" onSubmit={handleSubmit}>
+              <div className="formGrid">
+                <label className="formField">
+                  <span>Amount</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0"
+                    value={formAmount}
+                    onChange={(e) => setFormAmount(e.target.value)}
+                    placeholder="0"
+                    required
+                  />
+                </label>
+                <label className="formField">
+                  <span>Paid at (optional)</span>
+                  <input
+                    type="datetime-local"
+                    value={formPaidAt}
+                    onChange={(e) => setFormPaidAt(e.target.value)}
+                  />
+                </label>
+              </div>
+              <label className="formField">
+                <span>Note (optional)</span>
+                <button className="noteQuickBtn" type="button" onClick={applyMonthlyNote}>
+                  Fast månedlig betaling
+                </button>
+                <textarea
+                  rows={3}
+                  value={formNote}
+                  onChange={(e) => setFormNote(e.target.value)}
+                  placeholder="Add a note for this payment"
+                />
+              </label>
+              <div className="formActions">
+                <button
+                  className="loanPrimaryBtn"
+                  type="submit"
+                  disabled={formStatus === "submitting"}
+                >
+                  {formMode === "edit" ? "Save changes" : "Add payment"}
+                </button>
+                {formMode === "edit" ? (
+                  <button
+                    className="loanGhostBtn"
+                    type="button"
+                    onClick={() => {
+                      closeFormModal();
+                    }}
+                    disabled={formStatus === "submitting"}
+                  >
+                    Cancel
+                  </button>
+                ) : null}
+              </div>
+              {formMsg ? (
+                <div className={`formNotice ${formStatus}`}>{formMsg}</div>
+              ) : null}
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {isActionOpen && selectedPayment ? (
+        <div className="loanModalBackdrop" onClick={closeActionModal}>
+          <div className="loanModal small" onClick={(e) => e.stopPropagation()}>
+            <div className="loanModalHeader">
+              <div className="loanModalTitle">Payment #{selectedPayment.id}</div>
+              <button
+                className="loanModalClose"
+                type="button"
+                onClick={closeActionModal}
+              >x</button>
+            </div>
+            <div className="actionButtons">
+              <button
+                className="loanPrimaryBtn"
+                type="button"
+                onClick={() => {
+                  setIsActionOpen(false);
+                  handleEdit(selectedPayment);
+                }}
+              >
+                Edit payment
+              </button>
+              <button
+                className="loanDangerBtn"
+                type="button"
+                onClick={() => handleDelete(selectedPayment.id)}
+                disabled={actionStatus === "submitting"}
+              >
+                Delete payment
+              </button>
+            </div>
+            {actionMsg ? (
+              <div className={`formNotice ${actionStatus}`}>{actionMsg}</div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <div className="bottomSpace" />
     </div>

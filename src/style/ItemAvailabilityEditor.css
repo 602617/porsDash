@@ -37,6 +37,9 @@
 
 .availabilityField input {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 0.7rem 0.8rem;
   border-radius: 12px;
   border: 1px solid var(--stroke);
@@ -44,6 +47,16 @@
   color: var(--text);
   font-size: 13px;
   outline: none;
+}
+
+.availabilityField input[type="date"],
+.availabilityField input[type="time"],
+.availabilityField input[type="datetime-local"] {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .availabilityField input:focus {

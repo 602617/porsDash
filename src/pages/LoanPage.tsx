@@ -395,6 +395,7 @@ export default function LoanPage({
 
   const openAddModal = () => {
     resetForm();
+    setFormPaidAt(toLocalDateTimeInput(new Date().toISOString()));
     setIsFormOpen(true);
   };
 

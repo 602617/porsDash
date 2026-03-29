@@ -52,9 +52,11 @@
 }
 
 .notificationLink {
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid var(--stroke);
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid var(--stroke);
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   text-decoration: none;

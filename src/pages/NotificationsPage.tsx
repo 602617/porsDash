@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeaderProps";
 import BottomNav from "../components/BottomNav";
 import "../style/LoanPage.css";
@@ -17,6 +17,7 @@ const NotificationsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem("jwt") || "";
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
@@ -46,6 +47,24 @@ const NotificationsPage: React.FC = () => {
     }
   };
 
+  const resolveTarget = (url?: string | null) => {
+    if (!url) return null;
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    if (url.startsWith("/")) return url;
+    return `/${url}`;
+  };
+
+  const handleOpen = async (noteId: number, url?: string | null) => {
+    await markRead(noteId);
+    const target = resolveTarget(url);
+    if (!target) return;
+    if (target.startsWith("http")) {
+      window.location.href = target;
+      return;
+    }
+    navigate(target);
+  };
+
   return (
     <div className="notificationsPage">
       <div className="bgGlow" />
@@ -65,9 +84,13 @@ const NotificationsPage: React.FC = () => {
                 <div key={n.id} className="notificationItem">
                   <div className="notificationMessage">{n.message}</div>
                   <div className="notificationActions">
-                    <Link to={n.url} onClick={() => markRead(n.id)} className="notificationLink">
+                    <button
+                      type="button"
+                      onClick={() => handleOpen(n.id, n.url)}
+                      className="notificationLink"
+                    >
                       Åpne
-                    </Link>
+                    </button>
                     <button onClick={() => markRead(n.id)} className="notificationMute">
                       Marker lest
                     </button>

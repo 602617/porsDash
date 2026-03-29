@@ -1,48 +1,56 @@
-self.addEventListener('push', (event) => {
-  let data = {
-    title: 'Notification',
-    body: 'You have a new update',
-    url: '/',
+/* /public/sw.js */
+self.addEventListener("install", () => self.skipWaiting());
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data = { body: event.data.text() };
+    }
   }
 
-  try {
-    if (event.data) {
-      data = event.data.json()
-    }
-  } catch (err) {
-    data = {
-      title: 'Notification',
-      body: 'You have a new update',
-      url: '/',
-    }
-  }
+  const title = data.title || "PorsDash";
+  const body = data.body || "You have a new notification";
+  const url = data.url || "/";
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Notification', {
-      body: data.body || '',
-      icon: '/icon.png',
-      badge: '/icon.png',
-      tag: data.tag || 'porsdash',
-      data: {
-        url: data.url || '/',
-      },
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/badge-72.png",
+      data: { url },
+      tag: "porsdash-notification",
     })
-  )
-})
+  );
+});
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close()
-
-  const target = new URL(event.notification?.data?.url || '/', self.location.origin).href
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification?.data?.url || "/", self.location.origin).href;
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === target && 'focus' in client) {
-          return client.focus()
+    (async () => {
+      const windows = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+
+      for (const client of windows) {
+        if (client.url === target && "focus" in client) {
+          await client.focus();
+          return;
         }
       }
-      return clients.openWindow(target)
-    })
-  )
-})
+
+      if (self.clients.openWindow) {
+        await self.clients.openWindow(target);
+      }
+    })()
+  );
+});

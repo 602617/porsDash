@@ -71,44 +71,48 @@ export async function subscribeUser() {
     throw new Error(`Varsler er blokkert i nettleseren (${permission}).`)
   }
 
-  // 2. Hent SW-registreringen
+  // 2. Hent SW-registreringen og abonnementet
   const reg = await getPushRegistration()
   console.log('[push] Registration scope:', reg.scope)
   const appServerKey = urlBase64ToUint8Array(vapidPublicKey)
-  const existingSub = await reg.pushManager.getSubscription()
-  if (existingSub) {
-    const existingKey = existingSub.options?.applicationServerKey ?? null
+  let sub = await reg.pushManager.getSubscription()
+  if (sub) {
+    const existingKey = sub.options?.applicationServerKey ?? null
     if (!sameKey(existingKey, appServerKey)) {
       console.log('[push] Existing subscription uses old VAPID key, resubscribing')
-      await existingSub.unsubscribe()
+      await sub.unsubscribe()
+      sub = null
     } else {
       console.log('[push] Reusing existing subscription')
-      console.log('[push] Subscription endpoint:', existingSub.endpoint)
-      return existingSub
+      console.log('[push] Subscription endpoint:', sub.endpoint)
     }
   }
 
-  // 3. Abonner på PushManager
-  console.log('[push] Creating new subscription')
-  let sub: PushSubscription
-  try {
-    console.log('[push] VAPID key length:', appServerKey.byteLength)
-    sub = await withTimeout(
-      reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: appServerKey,
-      }),
-      10000,
-      'Push-abonnement tok for lang tid. Proev aa oppdatere siden.'
-    )
-  } catch (err) {
-    console.error('[push] Failed to create subscription', err)
-    const message = err instanceof Error ? err.message : 'Ukjent feil ved abonnement.'
-    throw new Error(message)
+  if (!sub) {
+    console.log('[push] Creating new subscription')
+    try {
+      console.log('[push] VAPID key length:', appServerKey.byteLength)
+      sub = await withTimeout(
+        reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: appServerKey,
+        }),
+        10000,
+        'Push-abonnement tok for lang tid. Proev aa oppdatere siden.'
+      )
+    } catch (err) {
+      console.error('[push] Failed to create subscription', err)
+      const message = err instanceof Error ? err.message : 'Ukjent feil ved abonnement.'
+      throw new Error(message)
+    }
+    console.log('[push] Subscription endpoint:', sub.endpoint)
   }
-  console.log('[push] Subscription endpoint:', sub.endpoint)
 
-  // 4. Send abonnementet til backend
+  // 3. Send abonnementet til backend
+  const payload = sub.toJSON()
+  if (!payload.endpoint || !payload.keys) {
+    throw new Error('Ugyldig push-abonnement.')
+  }
   const token = localStorage.getItem('jwt') || ''
   console.log('[push] Sending subscription to backend')
   const res = await fetch(`${apiBaseUrl}/api/push/subscribe`, {
@@ -117,7 +121,10 @@ export async function subscribeUser() {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(sub),
+    body: JSON.stringify({
+      endpoint: payload.endpoint,
+      keys: payload.keys,
+    }),
   })
   console.log('[push] Subscribe response status:', res.status)
   if (!res.ok) {

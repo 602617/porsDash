@@ -2,6 +2,7 @@
 import { useState } from "react";
 
 import { useNavigate } from "react-router-dom";
+import { subscribeUser } from "../components/usePushNotifications";
 import "../style/LoginPage.css"; // Ensure you have this CSS file for styling
 
 
@@ -28,6 +29,9 @@ const LoginPage: React.FC = () => {
 
       if (response.ok) {
         localStorage.setItem("jwt", data.token);
+        subscribeUser().catch((err) => {
+          console.warn("Push subscribe failed:", err);
+        });
         navigate("/nydash");
       } else {
         setError("Invalid credentials");

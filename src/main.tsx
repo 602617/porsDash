@@ -20,6 +20,7 @@ import ShoppingLists from './pages/ShoppingLists.tsx'
 import LoanPage from './pages/LoanPage.tsx'
 import NotificationsPage from './pages/NotificationsPage.tsx'
 import GamePage from './pages/GamePage.tsx'
+import BookingDetailPage from './pages/BookingDetailPage.tsx'
 
 
 if ("serviceWorker" in navigator) {
@@ -56,6 +57,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path="/profile" element={<ProfilePage/>} />
       <Route path="/myproducts" element={<MyProductsPage/>} />
       <Route path='/items/:id' element={<ItemDetailPage />} />
+      <Route path='/items/:itemId/bookings/:bookingId' element={<BookingDetailPage />} />
       <Route path='/dugnad' element={<DugnadPage/>} />
       <Route path="/events/:id" element={<EventDetail />} />
       <Route path='/events/new' element={<CreateEventForm />} />

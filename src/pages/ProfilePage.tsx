@@ -8,6 +8,7 @@ import "../style/ProfilePage.css";
 import "../style/LoanPage.css";
 import BottomNav from "../components/BottomNav";
 import PushNotificationSettings from "../components/PushNotificationSettings";
+import { unsubscribeUser } from "../components/usePushNotifications";
 
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -50,10 +51,12 @@ const ProfilePage: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      await unsubscribeUser();
+    } catch (error) {
+      console.warn("Push unsubscribe failed:", error);
+    } finally {
       localStorage.removeItem("jwt");
       navigate("/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
     }
   };
 

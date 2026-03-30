@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../style/TopBar.css';
 import { Link, useNavigate } from 'react-router-dom';
+import { unsubscribeUser } from './usePushNotifications';
 import { Bell } from 'lucide-react';
 
 interface NotificationDto {
@@ -42,9 +43,15 @@ const Topbar: React.FC = () => {
   const toggleMenu = () => setIsOpen(prev => !prev);
   const toggleNotifications = () => setMenuOpen(prev => !prev);
 
-  const handleLogout = () => {
-    localStorage.removeItem('jwt');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await unsubscribeUser();
+    } catch (err) {
+      console.warn('Push unsubscribe failed:', err);
+    } finally {
+      localStorage.removeItem('jwt');
+      navigate('/login');
+    }
   };
 
   const markRead = async (id: number) => {

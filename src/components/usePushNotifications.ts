@@ -153,7 +153,7 @@ export async function unsubscribeUser() {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(sub),
+    body: JSON.stringify({ endpoint: sub.endpoint }),
   })
   console.log('[push] Unsubscribe response status:', res.status)
   if (!res.ok) {

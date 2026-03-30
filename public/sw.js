@@ -25,7 +25,7 @@ self.addEventListener("push", (event) => {
       icon: "/icons/icon-192.png",
       badge: "/icons/badge-72.png",
       data: { url },
-      tag: "porsdash-notification",
+      tag: `booking-${Date.now()}`,
     })
   );
 });

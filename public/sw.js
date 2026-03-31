@@ -22,8 +22,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/badge-72.png",
+      icon: "/icon-192.png",
       data: { url },
       tag: `booking-${Date.now()}`,
     })

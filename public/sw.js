@@ -33,12 +33,53 @@ self.addEventListener("push", (event) => {
   );
 });
 
+const INTERNAL_ROUTE_PREFIXES = [
+  "/items",
+  "/events",
+  "/dashboard",
+  "/profile",
+  "/myproducts",
+  "/dugnad",
+  "/notifications",
+  "/loan",
+  "/game",
+  "/handlelister",
+  "/nydash",
+  "/nyevent",
+  "/testpage",
+  "/login",
+];
+
+const isInternalPath = (path) => {
+  if (path === "/") return true;
+  return INTERNAL_ROUTE_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+  );
+};
+
+const resolveNotificationTarget = (url) => {
+  const fallback = new URL("/", self.location.origin).href;
+  if (!url) return fallback;
+
+  try {
+    const parsed = new URL(url, self.location.origin);
+    if (parsed.origin === self.location.origin) return parsed.href;
+
+    const internalCandidate = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    if (isInternalPath(parsed.pathname)) {
+      return new URL(internalCandidate, self.location.origin).href;
+    }
+
+    return parsed.href;
+  } catch {
+    const normalized = String(url).startsWith("/") ? url : `/${url}`;
+    return new URL(normalized, self.location.origin).href;
+  }
+};
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(
-    event.notification?.data?.url || "/",
-    self.location.origin,
-  ).href;
+  const target = resolveNotificationTarget(event.notification?.data?.url);
 
   event.waitUntil(
     (async () => {

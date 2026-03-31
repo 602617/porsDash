@@ -4,6 +4,7 @@ import '../style/TopBar.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { unsubscribeUser } from './usePushNotifications';
 import { Bell } from 'lucide-react';
+import { resolveNotificationTarget } from '../utils/notificationTarget';
 
 interface NotificationDto {
   id: number;
@@ -66,6 +67,21 @@ const Topbar: React.FC = () => {
     }
   };
 
+  const openNotification = async (note: NotificationDto) => {
+    await markRead(note.id);
+    setMenuOpen(false);
+
+    const target = resolveNotificationTarget(note.url, import.meta.env.VITE_API_BASE_URL);
+    if (!target) return;
+
+    if (target.type === 'external') {
+      window.location.assign(target.to);
+      return;
+    }
+
+    navigate(target.to);
+  };
+
   return (
     <header className="topbar">
       <div className="logo">
@@ -83,13 +99,13 @@ const Topbar: React.FC = () => {
           <div className="notification-dropdown">
             {notes.length > 0 ? notes.map(n => (
               <div key={n.id} className="note-item">
-                <Link
-                    to={n.url}
-                    onClick={() => markRead(n.id)}
-                    className="note-link"
-                  >
-                    {n.message}
-                  </Link>
+                <button
+                  type="button"
+                  onClick={() => openNotification(n)}
+                  className="note-link"
+                >
+                  {n.message}
+                </button>
               </div>
             )) : (
               <div className="note-none">Ingen nye varsler</div>

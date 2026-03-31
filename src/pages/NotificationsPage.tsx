@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeaderProps";
 import BottomNav from "../components/BottomNav";
+import { resolveNotificationTarget } from "../utils/notificationTarget";
 import "../style/LoanPage.css";
 import "../style/NotificationsPage.css";
 
@@ -47,22 +48,15 @@ const NotificationsPage: React.FC = () => {
     }
   };
 
-  const resolveTarget = (url?: string | null) => {
-    if (!url) return null;
-    if (url.startsWith("http://") || url.startsWith("https://")) return url;
-    if (url.startsWith("/")) return url;
-    return `/${url}`;
-  };
-
   const handleOpen = async (noteId: number, url?: string | null) => {
     await markRead(noteId);
-    const target = resolveTarget(url);
+    const target = resolveNotificationTarget(url, apiBaseUrl);
     if (!target) return;
-    if (target.startsWith("http")) {
-      window.location.href = target;
+    if (target.type === "external") {
+      window.location.assign(target.to);
       return;
     }
-    navigate(target);
+    navigate(target.to);
   };
 
   return (

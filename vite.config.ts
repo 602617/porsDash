@@ -8,6 +8,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',   // oppdaterer SW automatisk
+      strategies: 'injectManifest',
+      srcDir: 'public',
+      filename: 'sw.js',
       manifest: {
         name: 'PorsDash',
         short_name: 'PorsDash',
@@ -28,8 +31,7 @@ export default defineConfig({
           // du kan generere flere (maskable osv.)
         ]
       },
-      workbox: {
-        // hvilke filer som caches
+      injectManifest: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       }

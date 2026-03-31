@@ -1,5 +1,18 @@
 import Phaser from 'phaser'
 
+type Direction = { x: number; y: number }
+
+type BoardTheme = {
+  fill: number
+  stroke: number
+  blocked: number
+  vein: [number, number]
+  background: number
+  player: number
+  coin: number
+  coinStroke: number
+}
+
 export default class BoardScene extends Phaser.Scene {
   private tileSize = 64
   private cols = 5
@@ -14,35 +27,119 @@ export default class BoardScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Arc
   private playerGridX = 0
   private playerGridY = 0
-  private isStepping = false
-  private currentDir: { x: number; y: number } | null = null
+  private moveProgress = 0
+  private currentDir: Direction | null = null
+  private queuedDir: Direction | null = null
   private coin!: Phaser.GameObjects.Arc
   private coinGridX = 0
   private coinGridY = 0
   private coinsCollected = 0
   private score = 0
   private waveActive = false
+  private discoActive = false
+  private discoTimer: Phaser.Time.TimerEvent | null = null
+  private discoPhase = 0
   private visitCounts: number[][] = []
 
-  private moveSpeed = 110
-  private swipeThreshold = 30
-  private boardFillColor = 0x1a2333
-  private boardStrokeColor = 0xc67a42
+  private readonly boardThemes: BoardTheme[] = [
+    {
+      fill: 0x1a2333,
+      stroke: 0xc67a42,
+      blocked: 0xff4040,
+      vein: [0x575861, 0xe5cec9],
+      background: 0x282325,
+      player: 0xeda16b,
+      coin: 0xe5cec9,
+      coinStroke: 0xc67a42,
+    },
+    {
+      fill: 0x102a43,
+      stroke: 0x3dd6d0,
+      blocked: 0xff5e78,
+      vein: [0x1f6f8b, 0xa9f1df],
+      background: 0x081b29,
+      player: 0x52b3d9,
+      coin: 0xe1fffb,
+      coinStroke: 0x3dd6d0,
+    },
+    {
+      fill: 0x18230f,
+      stroke: 0x8bc34a,
+      blocked: 0xff7043,
+      vein: [0x355e3b, 0xd4e157],
+      background: 0x0c1309,
+      player: 0xc5e478,
+      coin: 0xf2ff9f,
+      coinStroke: 0x8bc34a,
+    },
+    {
+      fill: 0x24163f,
+      stroke: 0xff5db1,
+      blocked: 0xffaa5e,
+      vein: [0x5d3f8c, 0xffb3e6],
+      background: 0x130a25,
+      player: 0xff7ecf,
+      coin: 0xffd6f0,
+      coinStroke: 0xff5db1,
+    },
+    {
+      fill: 0x2b1710,
+      stroke: 0xff7f50,
+      blocked: 0xffe066,
+      vein: [0x6b2f1a, 0xffb36b],
+      background: 0x1a0f0b,
+      player: 0xff9966,
+      coin: 0xffd5a6,
+      coinStroke: 0xff7f50,
+    },
+    {
+      fill: 0x0f2d2b,
+      stroke: 0x5ce1c6,
+      blocked: 0xff6b6b,
+      vein: [0x1f6f67, 0xb2fff0],
+      background: 0x071716,
+      player: 0x7fffd4,
+      coin: 0xdbfff7,
+      coinStroke: 0x5ce1c6,
+    },
+  ]
+  private currentThemeIndex = 0
+  private readonly discoPalette = [0x282325, 0x575861, 0x8d8d9b, 0xc67a42, 0xeda16b, 0xe5cec9]
+
+  private moveSpeed = 220
+  private swipeThreshold = 18
+  private boardFillColor = this.boardThemes[0].fill
+  private boardStrokeColor = this.boardThemes[0].stroke
+  private blockedStrokeColor = this.boardThemes[0].blocked
+  private veinPrimaryColor = this.boardThemes[0].vein[0]
+  private veinSecondaryColor = this.boardThemes[0].vein[1]
 
   constructor() {
     super('BoardScene')
   }
 
   create() {
+    this.currentDir = null
+    this.queuedDir = null
+    this.moveProgress = 0
+    this.discoActive = false
+    this.discoPhase = 0
+    this.discoTimer?.remove(false)
+    this.discoTimer = null
     this.layoutBoard()
     this.buildBoard()
     this.resetVisitCounts()
     this.createPlayer()
     this.createCoin()
+    this.applyTheme(this.currentThemeIndex)
     this.setupInput()
     this.setActiveTile(this.playerGridX, this.playerGridY)
 
     this.scale.on('resize', this.handleResize, this)
+    this.events.once('shutdown', () => {
+      this.discoTimer?.remove(false)
+      this.discoTimer = null
+    })
   }
 
   private layoutBoard() {
@@ -83,16 +180,18 @@ export default class BoardScene extends Phaser.Scene {
 
   private createPlayer() {
     const center = this.gridToPixel(this.playerGridX, this.playerGridY)
+    const theme = this.getCurrentTheme()
 
-    this.player = this.add.circle(center.x, center.y, this.tileSize * 0.28, 0xeda16b)
+    this.player = this.add.circle(center.x, center.y, this.tileSize * 0.28, theme.player)
     this.player.setDepth(1)
     this.incrementScore(1)
     this.markVisited(this.playerGridX, this.playerGridY)
   }
 
   private createCoin() {
-    this.coin = this.add.circle(0, 0, this.tileSize * 0.14, 0xe5cec9)
-    this.coin.setStrokeStyle(2, 0xc67a42, 1)
+    const theme = this.getCurrentTheme()
+    this.coin = this.add.circle(0, 0, this.tileSize * 0.14, theme.coin)
+    this.coin.setStrokeStyle(2, theme.coinStroke, 1)
     this.coin.setDepth(3)
     this.placeCoin()
   }
@@ -132,77 +231,127 @@ export default class BoardScene extends Phaser.Scene {
       }
     })
 
-    let startX = 0
-    let startY = 0
+    let anchorX = 0
+    let anchorY = 0
 
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      startX = pointer.x
-      startY = pointer.y
-    })
-
-    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      const dx = pointer.x - startX
-      const dy = pointer.y - startY
+    const trySetDirectionFromDelta = (dx: number, dy: number) => {
       const distance = Math.max(Math.abs(dx), Math.abs(dy))
-
-      if (distance < this.swipeThreshold) return
+      if (distance < this.swipeThreshold) return false
 
       if (Math.abs(dx) > Math.abs(dy)) {
         this.setDirection(dx > 0 ? 1 : -1, 0)
       } else {
         this.setDirection(0, dy > 0 ? 1 : -1)
       }
+
+      return true
+    }
+
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      anchorX = pointer.x
+      anchorY = pointer.y
+    })
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.isDown) return
+      const changed = trySetDirectionFromDelta(pointer.x - anchorX, pointer.y - anchorY)
+      if (changed) {
+        anchorX = pointer.x
+        anchorY = pointer.y
+      }
+    })
+
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      trySetDirectionFromDelta(pointer.x - anchorX, pointer.y - anchorY)
     })
   }
 
   private setDirection(dx: number, dy: number) {
-    this.currentDir = { x: dx, y: dy }
+    const nextDir: Direction = { x: dx, y: dy }
+    if (!this.currentDir) {
+      this.currentDir = nextDir
+      return
+    }
 
-    this.stepMove()
+    if (this.moveProgress === 0 && this.canMoveInDirection(nextDir)) {
+      this.currentDir = nextDir
+      this.queuedDir = null
+      return
+    }
+
+    this.queuedDir = nextDir
   }
 
-  private stepMove() {
-    if (!this.currentDir || this.isStepping) return
-
-    const nextX = this.playerGridX + this.currentDir.x
-    const nextY = this.playerGridY + this.currentDir.y
+  private canMoveInDirection(direction: Direction) {
+    const nextX = this.playerGridX + direction.x
+    const nextY = this.playerGridY + direction.y
 
     if (nextX < 0 || nextX >= this.cols || nextY < 0 || nextY >= this.rows) {
-      this.handleLoss()
-      return
+      return false
     }
 
     if (this.coinsCollected >= 5 && this.isBlocked(nextX, nextY)) {
-      this.handleLoss()
-      return
+      return false
     }
 
-    this.playerGridX = nextX
-    this.playerGridY = nextY
+    return true
+  }
 
-    const target = this.gridToPixel(nextX, nextY)
-    this.isStepping = true
-    this.setActiveTile(nextX, nextY)
-    this.incrementScore(1)
-    this.collectCoinIfNeeded()
-    this.markVisited(nextX, nextY)
+  private selectDirectionForStep(): Direction | null {
+    if (this.queuedDir) {
+      const queued = this.queuedDir
+      this.queuedDir = null
 
-    const distance = this.tileSize
-    const duration = Math.max(60, (distance / this.moveSpeed) * 1000)
+      if (this.canMoveInDirection(queued)) {
+        return queued
+      }
+    }
 
-    this.tweens.add({
-      targets: this.player,
-      x: target.x,
-      y: target.y,
-      duration,
-      ease: 'Linear',
-      onComplete: () => {
-        this.isStepping = false
-        if (this.currentDir) {
-          this.stepMove()
+    return this.currentDir
+  }
+
+  update(_time: number, delta: number) {
+    if (delta <= 0 || !this.currentDir) return
+    this.updateMovement(delta)
+  }
+
+  private updateMovement(delta: number) {
+    let remainingDistance = (this.moveSpeed * delta) / 1000
+
+    while (remainingDistance > 0 && this.currentDir) {
+      if (this.moveProgress === 0) {
+        const direction = this.selectDirectionForStep()
+        if (!direction) return
+        this.currentDir = direction
+
+        if (!this.canMoveInDirection(direction)) {
+          this.handleLoss()
+          return
         }
-      },
-    })
+      }
+
+      const direction = this.currentDir
+      const distanceToTileCenter = this.tileSize - this.moveProgress
+      const travel = Math.min(distanceToTileCenter, remainingDistance)
+
+      this.player.x += direction.x * travel
+      this.player.y += direction.y * travel
+      this.moveProgress += travel
+      remainingDistance -= travel
+
+      if (this.moveProgress < this.tileSize - 0.001) continue
+
+      this.playerGridX += direction.x
+      this.playerGridY += direction.y
+      const center = this.gridToPixel(this.playerGridX, this.playerGridY)
+      this.player.setPosition(center.x, center.y)
+      this.moveProgress = 0
+      this.setActiveTile(this.playerGridX, this.playerGridY)
+      this.incrementScore(1)
+      this.collectCoinIfNeeded()
+      this.markVisited(this.playerGridX, this.playerGridY)
+      this.pumpPlayerIfDisco()
+    }
   }
 
   private setActiveTile(gridX: number, gridY: number) {
@@ -213,7 +362,7 @@ export default class BoardScene extends Phaser.Scene {
       this.tweens.add({
         targets: this.activeTile,
         scale: 1,
-        duration: 120,
+        duration: 70,
         ease: 'Sine.easeOut',
       })
     }
@@ -221,19 +370,25 @@ export default class BoardScene extends Phaser.Scene {
     this.activeTile = nextTile
     this.tweens.add({
       targets: this.activeTile,
-      scale: 1.08,
-      duration: 120,
+      scale: 1.03,
+      duration: 70,
       ease: 'Sine.easeOut',
     })
   }
 
   private handleLoss() {
     this.currentDir = null
+    this.queuedDir = null
+    this.moveProgress = 0
+    if (this.discoActive || this.discoTimer) {
+      this.stopDiscoMode()
+    }
     this.events.emit('player-lost')
   }
 
   private handleResize() {
     this.layoutBoard()
+    this.moveProgress = 0
 
     for (let y = 0; y < this.rows; y++) {
       for (let x = 0; x < this.cols; x++) {
@@ -281,8 +436,9 @@ export default class BoardScene extends Phaser.Scene {
     const tile = this.tiles[gridY]?.[gridX]
     if (!tile) return
     if (this.waveActive && !force) return
+    if (this.discoActive && !force) return
     if (this.coinsCollected >= 5 && this.visitCounts[gridY][gridX] >= 2) {
-      tile.setStrokeStyle(2, 0xff4040, 1)
+      tile.setStrokeStyle(2, this.blockedStrokeColor, 1)
     } else {
       tile.setStrokeStyle(2, this.boardStrokeColor, 1)
     }
@@ -294,7 +450,7 @@ export default class BoardScene extends Phaser.Scene {
     veins.clear()
     veins.setPosition(x, y)
     for (let i = 0; i < 3; i++) {
-      const color = i % 2 === 0 ? 0x575861 : 0xe5cec9
+      const color = i % 2 === 0 ? this.veinPrimaryColor : this.veinSecondaryColor
       veins.lineStyle(1, color, 0.22)
       const startX = Phaser.Math.Between(0, w)
       const startY = Phaser.Math.Between(0, w)
@@ -310,7 +466,8 @@ export default class BoardScene extends Phaser.Scene {
   private collectCoinIfNeeded() {
     if (this.playerGridX !== this.coinGridX || this.playerGridY !== this.coinGridY) return
     this.incrementScore(10)
-    this.moveSpeed *= 1.02
+    const speedMultiplier = this.score >= 200 ? 1.012 : 1.03
+    this.moveSpeed *= speedMultiplier
     this.coinsCollected += 1
     this.spawnCoinBurst()
     this.resetVisitCounts()
@@ -322,14 +479,17 @@ export default class BoardScene extends Phaser.Scene {
     const previousScore = this.score
     this.score += amount
     this.events.emit('score-update', this.score)
+    this.syncDiscoState(previousScore, this.score)
     const previousBucket = Math.floor(previousScore / 100)
     const nextBucket = Math.floor(this.score / 100)
     if (nextBucket > previousBucket) {
-      this.spawnRainbowWave()
+      this.spawnRainbowWave(() => {
+        this.applyTheme(nextBucket % this.boardThemes.length)
+      })
     }
   }
 
-  private spawnRainbowWave() {
+  private spawnRainbowWave(onComplete?: () => void) {
     this.waveActive = true
     const colors = [0x282325, 0x575861, 0x8d8d9b, 0xc67a42, 0xeda16b, 0xe5cec9]
     const diagCount = this.cols + this.rows - 1
@@ -362,12 +522,131 @@ export default class BoardScene extends Phaser.Scene {
 
     this.time.delayedCall(diagCount * stepDelay + 200, () => {
       this.waveActive = false
+      if (onComplete) {
+        onComplete()
+        return
+      }
       for (let y = 0; y < this.rows; y++) {
         for (let x = 0; x < this.cols; x++) {
           this.updateTileStyle(x, y, true)
         }
       }
     })
+  }
+
+  private isDiscoScore(score: number) {
+    return score >= 500 && score < 600
+  }
+
+  private syncDiscoState(previousScore: number, nextScore: number) {
+    const wasDisco = this.isDiscoScore(previousScore)
+    const isDisco = this.isDiscoScore(nextScore)
+
+    if (!wasDisco && isDisco) {
+      this.startDiscoMode()
+      return
+    }
+
+    if (wasDisco && !isDisco) {
+      this.stopDiscoMode()
+    }
+  }
+
+  private startDiscoMode() {
+    if (this.discoActive) return
+    this.discoActive = true
+    this.discoPhase = 0
+    this.discoTimer?.remove(false)
+    this.applyDiscoFrame()
+    this.discoTimer = this.time.addEvent({
+      delay: 120,
+      loop: true,
+      callback: () => this.applyDiscoFrame(),
+    })
+  }
+
+  private stopDiscoMode() {
+    this.discoActive = false
+    this.discoTimer?.remove(false)
+    this.discoTimer = null
+    this.tweens.killTweensOf(this.player)
+    this.player.setScale(1)
+    this.applyTheme(this.currentThemeIndex)
+  }
+
+  private applyDiscoFrame() {
+    if (!this.discoActive) return
+
+    const phase = this.discoPhase
+    const palette = this.discoPalette
+    const paletteLen = palette.length
+    this.cameras.main.setBackgroundColor(palette[phase % paletteLen])
+
+    for (let y = 0; y < this.rows; y++) {
+      for (let x = 0; x < this.cols; x++) {
+        const tile = this.tiles[y]?.[x]
+        if (!tile) continue
+        const fill = palette[(phase + x + y) % paletteLen]
+        const stroke = palette[(phase + x * 2 + y + 2) % paletteLen]
+        tile.setFillStyle(fill, 1)
+        tile.setStrokeStyle(2, stroke, 1)
+      }
+    }
+
+    this.player.setFillStyle(palette[(phase + 3) % paletteLen], 1)
+    this.coin.setFillStyle(palette[(phase + 5) % paletteLen], 1)
+    this.coin.setStrokeStyle(2, palette[(phase + 1) % paletteLen], 1)
+    this.discoPhase = (phase + 1) % paletteLen
+  }
+
+  private pumpPlayerIfDisco() {
+    if (!this.discoActive) return
+    this.tweens.killTweensOf(this.player)
+    this.player.setScale(1)
+    this.tweens.add({
+      targets: this.player,
+      scale: 1.18,
+      duration: 110,
+      yoyo: true,
+      ease: 'Sine.easeInOut',
+    })
+  }
+
+  private getCurrentTheme() {
+    return this.boardThemes[this.currentThemeIndex]
+  }
+
+  private applyTheme(themeIndex: number) {
+    const len = this.boardThemes.length
+    this.currentThemeIndex = ((themeIndex % len) + len) % len
+    const theme = this.getCurrentTheme()
+
+    this.boardFillColor = theme.fill
+    this.boardStrokeColor = theme.stroke
+    this.blockedStrokeColor = theme.blocked
+    this.veinPrimaryColor = theme.vein[0]
+    this.veinSecondaryColor = theme.vein[1]
+
+    this.cameras.main.setBackgroundColor(theme.background)
+
+    this.player.setFillStyle(theme.player, 1)
+    this.coin.setFillStyle(theme.coin, 1)
+    this.coin.setStrokeStyle(2, theme.coinStroke, 1)
+
+    for (let y = 0; y < this.rows; y++) {
+      for (let x = 0; x < this.cols; x++) {
+        const center = this.gridToPixel(x, y)
+        const veins = this.tileVeins[y]?.[x]
+        if (veins) {
+          this.redrawVeins(veins, center.x - this.tileSize / 2, center.y - this.tileSize / 2)
+        }
+        this.updateTileStyle(x, y, true)
+      }
+    }
+  }
+
+  private toCssColor(color: number) {
+    return `#${color.toString(16).padStart(6, '0')}`
   }
 
   private spawnFuseGlow(x: number, y: number, color: number) {
@@ -408,12 +687,13 @@ export default class BoardScene extends Phaser.Scene {
   }
 
   private spawnCoinBurst() {
+    const theme = this.getCurrentTheme()
     const center = this.gridToPixel(this.coinGridX, this.coinGridY)
     const burst = this.add.text(center.x, center.y, '+10', {
       fontFamily: 'Arial',
       fontSize: '22px',
-      color: '#eda16b',
-      stroke: '#282325',
+      color: this.toCssColor(theme.player),
+      stroke: this.toCssColor(theme.background),
       strokeThickness: 3,
     })
     burst.setOrigin(0.5)

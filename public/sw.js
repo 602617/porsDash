@@ -22,16 +22,19 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: "/icon-192.png",
+      icon: "/icon-192-v2.png",
       data: { url },
       tag: `booking-${Date.now()}`,
-    })
+    }),
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(event.notification?.data?.url || "/", self.location.origin).href;
+  const target = new URL(
+    event.notification?.data?.url || "/",
+    self.location.origin,
+  ).href;
 
   event.waitUntil(
     (async () => {
@@ -50,6 +53,6 @@ self.addEventListener("notificationclick", (event) => {
       if (self.clients.openWindow) {
         await self.clients.openWindow(target);
       }
-    })()
+    })(),
   );
 });

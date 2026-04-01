@@ -10,6 +10,8 @@ interface BookingDto {
   startTime: string;
   endTime: string;
   status: BookingStatus | string;
+  bookingName?: string;
+  name?: string;
   itemName?: string;
   itemTitle?: string;
   item?: {
@@ -40,8 +42,12 @@ function itemLabelFor(booking: BookingDto): string {
     booking.itemName ||
     booking.itemTitle ||
     booking.item?.name ||
-    `Produkt #${booking.itemId}`
+    "Produkt"
   );
+}
+
+function bookingLabelFor(booking: BookingDto): string {
+  return booking.bookingName || booking.name || "Booking";
 }
 
 const MyBookings: React.FC = () => {
@@ -147,7 +153,7 @@ const MyBookings: React.FC = () => {
                   <h3 className="myBookingTitle">{itemLabelFor(booking)}</h3>
                   <span className={statusClass}>{status}</span>
                 </div>
-                <div className="myBookingMeta">Booking #{booking.id}</div>
+                <div className="myBookingMeta">{bookingLabelFor(booking)}</div>
                 <div className="myBookingRows">
                   <div className="myBookingRow">
                     <span className="myBookingLabel">Start</span>

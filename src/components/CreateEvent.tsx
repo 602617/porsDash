@@ -72,6 +72,15 @@ const CreateEventForm: React.FC = () => {
       return setError("Vennligst fyll ut alle paakrevde felt.");
     }
 
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return setError("Ugyldig dato/tid.");
+    }
+    if (endDate.getTime() <= startDate.getTime()) {
+      return setError("Sluttidspunkt maa vaere etter starttidspunkt.");
+    }
+
     const dto: EventDto = {
       title,
       description,
@@ -172,6 +181,7 @@ const CreateEventForm: React.FC = () => {
                   type="datetime-local"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
+                  min={startTime || undefined}
                   required
                 />
               </label>

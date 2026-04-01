@@ -9,7 +9,7 @@ interface AttendanceRequest {
 interface AttendanceDto {
   userId:   number;
   username: string;
-  status:   'CAN' | 'CANNOT';
+  status:   'INVITED' | 'CAN' | 'CANNOT';
   comment?: string;
   updatedAt: string;
 }

@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import homeIcon from "../assets/DugnadIcon.png";
 import bellIcon from "../assets/MyProductsIcon.png";
 import userIcon from "../assets/ShoppingIcon.png";
+import bookingIcon from "../assets/Itemsicon.png";
 import '../style/BottomNav.css' 
 
 export default function BottomNav() {
@@ -21,6 +22,14 @@ export default function BottomNav() {
       >
         <img src={bellIcon} alt="Varsler ikon" />
         <span>Varsler</span>
+      </NavLink>
+
+      <NavLink
+        to="/mybookings"
+        className={({ isActive }) => "tab" + (isActive ? " active" : "")}
+      >
+        <img src={bookingIcon} alt="Mine bookinger ikon" />
+        <span>Mine bookinger</span>
       </NavLink>
 
       <NavLink 

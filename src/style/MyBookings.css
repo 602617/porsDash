@@ -1,0 +1,110 @@
+.myBookingsWrap {
+  display: grid;
+  gap: 10px;
+}
+
+.myBookingsState {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.myBookingsError {
+  color: #fca5a5;
+}
+
+.myBookingsList {
+  display: grid;
+  gap: 10px;
+}
+
+.myBookingCard {
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.myBookingTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.myBookingTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.myBookingMeta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.myBookingRows {
+  display: grid;
+  gap: 8px;
+}
+
+.myBookingRow {
+  display: grid;
+  gap: 4px;
+}
+
+.myBookingLabel {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 700;
+}
+
+.myBookingValue {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+}
+
+.myBookingStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.myBookingStatus--pending {
+  color: #ffe4b0;
+  border-color: rgba(231, 168, 63, 0.45);
+  background: rgba(231, 168, 63, 0.16);
+}
+
+.myBookingStatus--confirmed {
+  color: #caf5ef;
+  border-color: rgba(106, 194, 184, 0.44);
+  background: rgba(106, 194, 184, 0.16);
+}
+
+.myBookingStatus--cancelled {
+  color: #d2d5de;
+  border-color: rgba(138, 143, 158, 0.5);
+  background: rgba(138, 143, 158, 0.2);
+}
+
+.myBookingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.myBookingActionBtn {
+  text-decoration: none;
+  width: auto;
+}

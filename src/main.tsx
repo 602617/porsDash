@@ -21,6 +21,7 @@ import LoanPage from './pages/LoanPage.tsx'
 import NotificationsPage from './pages/NotificationsPage.tsx'
 import GamePage from './pages/GamePage.tsx'
 import BookingDetailPage from './pages/BookingDetailPage.tsx'
+import MyBookingsPage from './pages/MyBookingsPage.tsx'
 import { installAuth401Interceptor } from './utils/authFetch.ts'
 
 installAuth401Interceptor()
@@ -58,6 +59,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/profile" element={<ProfilePage/>} />
       <Route path="/myproducts" element={<MyProductsPage/>} />
+      <Route path="/mybookings" element={<MyBookingsPage/>} />
       <Route path='/items/:id' element={<ItemDetailPage />} />
       <Route path='/items/:itemId/bookings/:bookingId' element={<BookingDetailPage />} />
       <Route path='/dugnad' element={<DugnadPage/>} />

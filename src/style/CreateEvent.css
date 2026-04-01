@@ -103,6 +103,57 @@
   transform: none;
 }
 
+.inviteBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.inviteHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.inviteHint {
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 700;
+}
+
+.inviteState {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.inviteError {
+  color: #fca5a5;
+}
+
+.inviteList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inviteUserChip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inviteUserChip.active {
+  border-color: rgba(106, 194, 184, 0.44);
+  background: rgba(106, 194, 184, 0.2);
+}
+
 @media (min-width: 640px) {
   .createEventGrid {
     grid-template-columns: repeat(2, 1fr);

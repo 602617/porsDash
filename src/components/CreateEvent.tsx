@@ -1,5 +1,5 @@
 // src/components/CreateEventForm.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "./PageHeaderProps";
 import "../style/CreateEvent.css";
@@ -11,6 +11,12 @@ interface EventDto {
   location?: string;
   startTime: string; // ISO string
   endTime: string; // ISO string
+  invitedUserIds: number[];
+}
+
+interface UserDto {
+  id: number;
+  username: string;
 }
 
 const CreateEventForm: React.FC = () => {
@@ -21,10 +27,42 @@ const CreateEventForm: React.FC = () => {
   const [endTime, setEndTime] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [users, setUsers] = useState<UserDto[]>([]);
+  const [invitedUserIds, setInvitedUserIds] = useState<number[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [usersError, setUsersError] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const api = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem("jwt") || "";
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${api}/api/users`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to load users (${res.status})`);
+        }
+        const data = (await res.json()) as UserDto[];
+        setUsers(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setUsersError(err instanceof Error ? err.message : "Kunne ikke hente brukere.");
+      } finally {
+        setLoadingUsers(false);
+      }
+    })();
+  }, [api, token]);
+
+  const toggleInviteUser = (userId: number) => {
+    setInvitedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +72,14 @@ const CreateEventForm: React.FC = () => {
       return setError("Vennligst fyll ut alle paakrevde felt.");
     }
 
-    const dto: EventDto = { title, description, location, startTime, endTime };
+    const dto: EventDto = {
+      title,
+      description,
+      location,
+      startTime,
+      endTime,
+      invitedUserIds,
+    };
 
     setLoading(true);
     try {
@@ -130,6 +175,36 @@ const CreateEventForm: React.FC = () => {
                   required
                 />
               </label>
+            </div>
+
+            <div className="inviteBlock">
+              <div className="inviteHeader">
+                <span>Inviter brukere</span>
+                <span className="inviteHint">{invitedUserIds.length} valgt</span>
+              </div>
+              {loadingUsers ? (
+                <p className="inviteState">Laster brukere...</p>
+              ) : usersError ? (
+                <p className="inviteState inviteError">{usersError}</p>
+              ) : users.length === 0 ? (
+                <p className="inviteState">Ingen brukere tilgjengelig.</p>
+              ) : (
+                <div className="inviteList">
+                  {users.map((user) => {
+                    const selected = invitedUserIds.includes(user.id);
+                    return (
+                      <button
+                        key={user.id}
+                        type="button"
+                        className={`inviteUserChip${selected ? " active" : ""}`}
+                        onClick={() => toggleInviteUser(user.id)}
+                      >
+                        {user.username}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <button type="submit" disabled={loading} className="createEventSubmit">

@@ -12,7 +12,7 @@ import BottomNav from "./BottomNav";
 interface AttendanceDto {
   userId: number;
   username: string;
-  status: "CAN" | "CANNOT";
+  status: "INVITED" | "CAN" | "CANNOT";
   comment?: string;
   updatedAt: string;
 }
@@ -25,6 +25,7 @@ interface EventDetailDto {
   startTime: string;
   endTime: string;
   createdBy: string;
+  invitedUserIds?: number[];
   attendees: AttendanceDto[];
 }
 
@@ -70,8 +71,9 @@ const EventDetail: React.FC = () => {
         setEvent(data);
         setAttendees(data.attendees);
 
-        const hasAttended = data.attendees.some((a) => a.username === currentUser);
-        setShowForm(!hasAttended);
+        const myAttendance = data.attendees.find((a) => a.username === currentUser);
+        const hasResponded = myAttendance?.status === "CAN" || myAttendance?.status === "CANNOT";
+        setShowForm(!hasResponded);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Ukjent feil ved lasting");
       } finally {
@@ -93,7 +95,8 @@ const EventDetail: React.FC = () => {
   const { date: endDate, time: endTime } = formatDateTime(event.endTime);
 
   const canList = attendees.filter((a) => a.status === "CAN");
-  const cannotList = attendees.filter((a) => a.status !== "CAN");
+  const invitedList = attendees.filter((a) => a.status === "INVITED");
+  const cannotList = attendees.filter((a) => a.status === "CANNOT");
 
   return (
     <div className="eventDetailPage">
@@ -164,6 +167,20 @@ const EventDetail: React.FC = () => {
                       <li key={a.userId} className="attendeeItem">
                         <span>{a.username}</span>
                         {a.comment ? <span className="attendeeComment">"{a.comment}"</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {invitedList.length > 0 ? (
+                <div className="attendeeGroup attendeeGroupInvited">
+                  <div className="attendeeTitle">Invitert</div>
+                  <ul className="attendeeList">
+                    {invitedList.map((a) => (
+                      <li key={a.userId} className="attendeeItem">
+                        <span>{a.username}</span>
+                        <span className="attendeeComment">Venter paa svar</span>
                       </li>
                     ))}
                   </ul>

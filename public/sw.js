@@ -27,7 +27,7 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(title, {
       body,
       icon: "/icon-192-v2.png",
-      data: { url },
+      data: { ...data, url },
       tag: `booking-${Date.now()}`,
     }),
   );
@@ -39,6 +39,7 @@ const INTERNAL_ROUTE_PREFIXES = [
   "/dashboard",
   "/profile",
   "/myproducts",
+  "/mybookings",
   "/dugnad",
   "/notifications",
   "/loan",
@@ -57,29 +58,65 @@ const isInternalPath = (path) => {
   );
 };
 
-const resolveNotificationTarget = (url) => {
+const mapApiPathToInternalPath = (path) => {
+  if (!path) return "/";
+
+  if (/^\/api\/notifications(\/.*)?$/i.test(path)) {
+    return "/notifications";
+  }
+
+  if (path.startsWith("/api/")) {
+    return path.slice(4);
+  }
+
+  if (path.startsWith("api/")) {
+    return `/${path.slice(4)}`;
+  }
+
+  return path.startsWith("/") ? path : `/${path}`;
+};
+
+const getDirectBookingPath = (payload) => {
+  if (!payload || typeof payload !== "object") return null;
+  const itemId = payload.itemId ?? payload.item_id;
+  const bookingId = payload.bookingId ?? payload.booking_id;
+  if (!itemId || !bookingId) return null;
+  return `/items/${itemId}/bookings/${bookingId}`;
+};
+
+const resolveNotificationTarget = (payloadOrUrl) => {
   const fallback = new URL("/", self.location.origin).href;
+  if (!payloadOrUrl) return fallback;
+
+  const directBookingPath =
+    typeof payloadOrUrl === "object" ? getDirectBookingPath(payloadOrUrl) : null;
+  const url =
+    directBookingPath ||
+    (typeof payloadOrUrl === "string" ? payloadOrUrl : payloadOrUrl.url);
   if (!url) return fallback;
 
   try {
     const parsed = new URL(url, self.location.origin);
-    if (parsed.origin === self.location.origin) return parsed.href;
+    const mappedPath = mapApiPathToInternalPath(parsed.pathname);
+    if (parsed.origin === self.location.origin && isInternalPath(mappedPath)) {
+      return new URL(`${mappedPath}${parsed.search}${parsed.hash}`, self.location.origin).href;
+    }
 
-    const internalCandidate = `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    if (isInternalPath(parsed.pathname)) {
+    const internalCandidate = `${mappedPath}${parsed.search}${parsed.hash}`;
+    if (isInternalPath(mappedPath)) {
       return new URL(internalCandidate, self.location.origin).href;
     }
 
     return parsed.href;
   } catch {
-    const normalized = String(url).startsWith("/") ? url : `/${url}`;
-    return new URL(normalized, self.location.origin).href;
+    const normalizedPath = mapApiPathToInternalPath(String(url));
+    return new URL(normalizedPath, self.location.origin).href;
   }
 };
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = resolveNotificationTarget(event.notification?.data?.url);
+  const target = resolveNotificationTarget(event.notification?.data);
 
   event.waitUntil(
     (async () => {

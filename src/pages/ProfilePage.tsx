@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import type { User } from "../types/User";
 import { useNavigate } from "react-router-dom";
 import MyProducts from "../components/MyProducts";
+import MyBookings from "../components/MyBookings";
 import { PageHeader } from "../components/PageHeaderProps";
 import "../style/ProfilePage.css";
 import "../style/LoanPage.css";
@@ -86,6 +87,11 @@ const ProfilePage: React.FC = () => {
         </section>
 
         <section className="section card profileProducts">
+          <div className="sectionTitle">Mine bookinger</div>
+          <MyBookings />
+        </section>
+
+        <section className="section card profileProducts profileBookings">
           <div className="sectionTitle">Mine produkter</div>
           <MyProducts />
         </section>

@@ -103,6 +103,11 @@
   background: rgba(0, 0, 0, 0.22);
 }
 
+.attendeeGroupInvited {
+  border-color: rgba(231, 168, 63, 0.35);
+  background: rgba(231, 168, 63, 0.12);
+}
+
 .attendeeTitle {
   font-size: 13px;
   font-weight: 700;

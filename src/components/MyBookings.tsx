@@ -1,0 +1,188 @@
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import "../style/MyBookings.css";
+
+type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
+
+interface BookingDto {
+  id: number;
+  itemId: number;
+  startTime: string;
+  endTime: string;
+  status: BookingStatus | string;
+  itemName?: string;
+  itemTitle?: string;
+  item?: {
+    name?: string;
+  };
+}
+
+function normalizeStatus(status: unknown): BookingStatus {
+  if (status === "PENDING" || status === "CONFIRMED" || status === "CANCELLED") {
+    return status;
+  }
+  return "PENDING";
+}
+
+function formatDateTime(iso: string) {
+  const date = new Date(iso);
+  return new Intl.DateTimeFormat("nb-NO", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function itemLabelFor(booking: BookingDto): string {
+  return (
+    booking.itemName ||
+    booking.itemTitle ||
+    booking.item?.name ||
+    `Produkt #${booking.itemId}`
+  );
+}
+
+const MyBookings: React.FC = () => {
+  const [bookings, setBookings] = useState<BookingDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+  useEffect(() => {
+    (async () => {
+      const token = localStorage.getItem("jwt");
+      if (!token) {
+        setError("Not authenticated.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/users/me/bookings`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          throw new Error(text || `Failed to load bookings (${res.status})`);
+        }
+
+        const data = (await res.json()) as BookingDto[];
+        setBookings(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Kunne ikke hente bookinger.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [apiBaseUrl]);
+
+  const handleCancel = async (booking: BookingDto) => {
+    const status = normalizeStatus(booking.status);
+    if (status === "CANCELLED") return;
+
+    const accepted = window.confirm("Avbryte denne bookingen?");
+    if (!accepted) return;
+
+    const token = localStorage.getItem("jwt") || "";
+    setCancellingId(booking.id);
+    setError(null);
+
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/items/${booking.itemId}/bookings/${booking.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const message = await res.text().catch(() => "");
+        throw new Error(message || `Cancel failed (${res.status})`);
+      }
+
+      let updatedStatus: BookingStatus = "CANCELLED";
+      if (res.status !== 204) {
+        try {
+          const updated = (await res.json()) as Partial<BookingDto>;
+          updatedStatus = normalizeStatus(updated.status);
+        } catch {
+          updatedStatus = "CANCELLED";
+        }
+      }
+
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === booking.id ? { ...b, status: updatedStatus } : b
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke avbryte booking.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  return (
+    <div className="myBookingsWrap">
+      {loading ? (
+        <p className="myBookingsState">Laster bookinger...</p>
+      ) : error ? (
+        <p className="myBookingsState myBookingsError">{error}</p>
+      ) : bookings.length === 0 ? (
+        <p className="myBookingsState">Ingen bookinger funnet.</p>
+      ) : (
+        <div className="myBookingsList">
+          {bookings.map((booking) => {
+            const status = normalizeStatus(booking.status);
+            const statusClass = `myBookingStatus myBookingStatus--${status.toLowerCase()}`;
+            return (
+              <div key={booking.id} className="myBookingCard">
+                <div className="myBookingTop">
+                  <h3 className="myBookingTitle">{itemLabelFor(booking)}</h3>
+                  <span className={statusClass}>{status}</span>
+                </div>
+                <div className="myBookingMeta">Booking #{booking.id}</div>
+                <div className="myBookingRows">
+                  <div className="myBookingRow">
+                    <span className="myBookingLabel">Start</span>
+                    <span className="myBookingValue">{formatDateTime(booking.startTime)}</span>
+                  </div>
+                  <div className="myBookingRow">
+                    <span className="myBookingLabel">Slutt</span>
+                    <span className="myBookingValue">{formatDateTime(booking.endTime)}</span>
+                  </div>
+                </div>
+                <div className="myBookingActions">
+                  <Link
+                    to={`/items/${booking.itemId}/bookings/${booking.id}`}
+                    className="loanGhostBtn myBookingActionBtn"
+                  >
+                    Aapne detaljer
+                  </Link>
+                  {status !== "CANCELLED" ? (
+                    <button
+                      type="button"
+                      className="loanDangerBtn myBookingActionBtn"
+                      onClick={() => handleCancel(booking)}
+                      disabled={cancellingId === booking.id}
+                    >
+                      {cancellingId === booking.id ? "Avbryter..." : "Avbryt booking"}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MyBookings;

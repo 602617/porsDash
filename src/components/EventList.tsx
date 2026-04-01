@@ -43,7 +43,11 @@ const EventList: React.FC = () => {
         if (!res.ok) {
           throw new Error(`Failed to load events (${res.status})`);
         }
-        setEvents(await res.json());
+        const data = (await res.json()) as EventListDto[];
+        const sorted = [...data].sort(
+          (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+        setEvents(sorted);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Ukjent feil");
       } finally {
@@ -54,7 +58,9 @@ const EventList: React.FC = () => {
 
   if (loading) return <p className="eventState">Laster arrangementer...</p>;
   if (error) return <p className="eventState eventError">Feil: {error}</p>;
-  if (events.length === 0) return <p className="eventState">Ingen arrangement funnet.</p>;
+  if (events.length === 0) {
+    return <p className="eventState">Ingen arrangementer der du er oppretter eller invitert.</p>;
+  }
 
   return (
     <div className="event-list-container">

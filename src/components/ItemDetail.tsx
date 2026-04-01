@@ -13,15 +13,30 @@ interface Slot {
   startTime: string;
   endTime: string;
 }
+type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED';
 interface Booking {
   id: number;
   startTime: string;
   endTime: string;
+  status?: BookingStatus | string;
 }
 interface Item {
   id: number;
   name: string;
   username: string;
+}
+
+function normalizeBookingStatus(status: unknown): BookingStatus {
+  if (status === 'PENDING' || status === 'CONFIRMED' || status === 'CANCELLED') {
+    return status;
+  }
+  return 'CONFIRMED';
+}
+
+function bookingStatusColor(status: BookingStatus): string {
+  if (status === 'PENDING') return '#e7a83f';
+  if (status === 'CANCELLED') return '#8a8f9e';
+  return '#6AC2B8';
 }
 
 const ItemDetail: React.FC = () => {
@@ -129,13 +144,16 @@ const ItemDetail: React.FC = () => {
     end:   s.endTime,
     color: '#e25858'
   }));
-  const bookingEvents: EventInput[] = bookings.map(b => ({
+  const bookingEvents: EventInput[] = bookings.map(b => {
+    const status = normalizeBookingStatus(b.status);
+    return ({
     id:    `booking-${b.id}`,
-    title: 'Reservert',
+    title: status,
     start: b.startTime,
     end:   b.endTime,
-    color: '#6AC2B8'
-  }));
+    color: bookingStatusColor(status)
+  });
+  });
   const allEvents = [...blockEvents, ...bookingEvents];
 
   const handleAddBooking = async () => {

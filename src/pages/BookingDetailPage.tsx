@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import BottomNav from "../components/BottomNav";
 import { PageHeader } from "../components/PageHeaderProps";
 import "../style/LoanPage.css";
@@ -12,12 +13,19 @@ type Booking = {
   username: string;
   startTime: string;
   endTime: string;
+  status?: "PENDING" | "CONFIRMED" | "CANCELLED" | string;
 };
 
 type Item = {
   id: number;
   name: string;
   username?: string;
+};
+
+type JwtClaims = {
+  sub?: string;
+  username?: string;
+  preferred_username?: string;
 };
 
 function formatDateTime(iso: string) {
@@ -31,6 +39,13 @@ function formatDateTime(iso: string) {
   }).format(d);
 }
 
+function normalizeBookingStatus(status: unknown): "PENDING" | "CONFIRMED" | "CANCELLED" {
+  if (status === "PENDING" || status === "CONFIRMED" || status === "CANCELLED") {
+    return status;
+  }
+  return "CONFIRMED";
+}
+
 const BookingDetailPage: React.FC = () => {
   const { itemId, bookingId } = useParams<{ itemId: string; bookingId: string }>();
   const [item, setItem] = useState<Item | null>(null);
@@ -39,9 +54,21 @@ const BookingDetailPage: React.FC = () => {
     "loading" | "ok" | "unauthorized" | "forbidden" | "error"
   >("loading");
   const [error, setError] = useState("");
+  const [isApproving, setIsApproving] = useState(false);
+  const [approveMessage, setApproveMessage] = useState("");
+  const [approveMessageType, setApproveMessageType] = useState<"idle" | "success" | "error">("idle");
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const token = useMemo(() => localStorage.getItem("jwt") || "", []);
+  const currentUsername = useMemo(() => {
+    if (!token) return "";
+    try {
+      const decoded = jwtDecode<JwtClaims>(token);
+      return decoded.sub || decoded.username || decoded.preferred_username || "";
+    } catch {
+      return "";
+    }
+  }, [token]);
 
   useEffect(() => {
     let alive = true;
@@ -172,6 +199,44 @@ const BookingDetailPage: React.FC = () => {
   if (!item || !booking) {
     return null;
   }
+  const bookingStatus = normalizeBookingStatus(booking.status);
+  const bookingStatusClass = `bookingStatus bookingStatus--${bookingStatus.toLowerCase()}`;
+  const ownerUsername = item.username || "";
+  const isOwner =
+    Boolean(ownerUsername) &&
+    Boolean(currentUsername) &&
+    ownerUsername.toLowerCase() === currentUsername.toLowerCase();
+  const canApprove = isOwner && bookingStatus === "PENDING";
+
+  const handleApprove = async () => {
+    if (!itemId || !bookingId) return;
+    setIsApproving(true);
+    setApproveMessage("");
+    setApproveMessageType("idle");
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/items/${itemId}/bookings/${bookingId}/approve`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Approve failed: ${res.status}`);
+      }
+
+      const updated = (await res.json()) as Booking;
+      setBooking((prev) => (prev ? { ...prev, ...updated } : updated));
+      setApproveMessage("Booking godkjent.");
+      setApproveMessageType("success");
+    } catch (err) {
+      setApproveMessage(err instanceof Error ? err.message : "Kunne ikke godkjenne booking.");
+      setApproveMessageType("error");
+    } finally {
+      setIsApproving(false);
+    }
+  };
 
   return (
     <div className="bookingDetailPage">
@@ -182,7 +247,10 @@ const BookingDetailPage: React.FC = () => {
         <section className="section card bookingCard">
           <div className="sectionTitle">Booking info</div>
           <div className="bookingSummary">
-            <div className="bookingTitle">{item.name}</div>
+            <div className="bookingSummaryTop">
+              <div className="bookingTitle">{item.name}</div>
+              <span className={bookingStatusClass}>{bookingStatus}</span>
+            </div>
             {item.username ? (
               <div className="bookingMeta">Utleier: {item.username}</div>
             ) : null}
@@ -201,7 +269,22 @@ const BookingDetailPage: React.FC = () => {
             <Link to={`/items/${itemId}`} className="loanPrimaryBtn bookingAction">
               Ga til produkt
             </Link>
+            {canApprove ? (
+              <button
+                type="button"
+                className="loanGhostBtn bookingAction"
+                onClick={handleApprove}
+                disabled={isApproving}
+              >
+                {isApproving ? "Godkjenner..." : "Godkjenn booking"}
+              </button>
+            ) : null}
           </div>
+          {approveMessage ? (
+            <div className={`formNotice ${approveMessageType === "error" ? "error" : "success"}`}>
+              {approveMessage}
+            </div>
+          ) : null}
         </section>
       </main>
       <BottomNav />

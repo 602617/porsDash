@@ -21,10 +21,47 @@
   margin-bottom: 12px;
 }
 
+.bookingSummaryTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .bookingTitle {
   font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.2px;
+}
+
+.bookingStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.bookingStatus--pending {
+  color: #ffe4b0;
+  border-color: rgba(231,168,63,0.45);
+  background: rgba(231,168,63,0.16);
+}
+
+.bookingStatus--confirmed {
+  color: #caf5ef;
+  border-color: rgba(106,194,184,0.44);
+  background: rgba(106,194,184,0.16);
+}
+
+.bookingStatus--cancelled {
+  color: #d2d5de;
+  border-color: rgba(138,143,158,0.50);
+  background: rgba(138,143,158,0.20);
 }
 
 .bookingMeta {
@@ -60,10 +97,13 @@
 
 .bookingActions {
   margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .bookingAction {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;

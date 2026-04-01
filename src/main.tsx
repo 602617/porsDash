@@ -29,6 +29,14 @@ function readStoredJwt(): string {
   return localStorage.getItem('jwt') || ''
 }
 
+function getSafeRedirectPath(search: string): string | null {
+  const redirect = new URLSearchParams(search).get('redirect')
+  if (!redirect) return null
+  if (!redirect.startsWith('/') || redirect.startsWith('//')) return null
+  if (redirect === '/login') return null
+  return redirect
+}
+
 function RequireAuth({ children }: { children: React.ReactElement }) {
   const location = useLocation()
   if (!readStoredJwt()) {
@@ -39,10 +47,31 @@ function RequireAuth({ children }: { children: React.ReactElement }) {
 }
 
 function RedirectIfAuthed({ children }: { children: React.ReactElement }) {
+  const location = useLocation()
   if (readStoredJwt()) {
-    return <Navigate to="/nydash" replace />
+    const redirect = getSafeRedirectPath(location.search)
+    return <Navigate to={redirect || "/nydash"} replace />
   }
   return children
+}
+
+function RootEntry() {
+  const location = useLocation()
+  const token = readStoredJwt()
+  const redirect = getSafeRedirectPath(location.search)
+
+  if (redirect) {
+    if (!token) {
+      return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />
+    }
+    return <Navigate to={redirect} replace />
+  }
+
+  if (token) {
+    return <Navigate to="/nydash" replace />
+  }
+
+  return <HelloPage />
 }
 
 installAuth401Interceptor()
@@ -74,7 +103,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
   <BrowserRouter>
     <Routes>
-      <Route path="/" element={<RedirectIfAuthed><HelloPage/></RedirectIfAuthed>} />
+      <Route path="/" element={<RootEntry />} />
       <Route path="/login" element={<RedirectIfAuthed><LoginPage /></RedirectIfAuthed>} />
 
       <Route path="/items" element={<RequireAuth><ItemPage /></RequireAuth>} />

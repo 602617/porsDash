@@ -84,6 +84,15 @@ const getDirectBookingPath = (payload) => {
   return `/items/${itemId}/bookings/${bookingId}`;
 };
 
+const toAppEntryUrl = (internalPath) => {
+  const normalized = internalPath.startsWith("/") ? internalPath : `/${internalPath}`;
+  if (normalized === "/") {
+    return new URL("/", self.location.origin).href;
+  }
+  const query = `/?redirect=${encodeURIComponent(normalized)}`;
+  return new URL(query, self.location.origin).href;
+};
+
 const resolveNotificationTarget = (payloadOrUrl) => {
   const fallback = new URL("/", self.location.origin).href;
   if (!payloadOrUrl) return fallback;
@@ -98,18 +107,21 @@ const resolveNotificationTarget = (payloadOrUrl) => {
   try {
     const parsed = new URL(url, self.location.origin);
     const mappedPath = mapApiPathToInternalPath(parsed.pathname);
+    const internalCandidate = `${mappedPath}${parsed.search}${parsed.hash}`;
     if (parsed.origin === self.location.origin && isInternalPath(mappedPath)) {
-      return new URL(`${mappedPath}${parsed.search}${parsed.hash}`, self.location.origin).href;
+      return toAppEntryUrl(internalCandidate);
     }
 
-    const internalCandidate = `${mappedPath}${parsed.search}${parsed.hash}`;
     if (isInternalPath(mappedPath)) {
-      return new URL(internalCandidate, self.location.origin).href;
+      return toAppEntryUrl(internalCandidate);
     }
 
     return parsed.href;
   } catch {
     const normalizedPath = mapApiPathToInternalPath(String(url));
+    if (isInternalPath(normalizedPath)) {
+      return toAppEntryUrl(normalizedPath);
+    }
     return new URL(normalizedPath, self.location.origin).href;
   }
 };
@@ -124,10 +136,15 @@ self.addEventListener("notificationclick", (event) => {
         type: "window",
         includeUncontrolled: true,
       });
+      const targetOrigin = new URL(target).origin;
 
       for (const client of windows) {
-        if (client.url === target && "focus" in client) {
+        const clientOrigin = new URL(client.url).origin;
+        if (clientOrigin === targetOrigin && "focus" in client) {
           await client.focus();
+          if ("navigate" in client) {
+            await client.navigate(target);
+          }
           return;
         }
       }

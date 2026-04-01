@@ -21,7 +21,9 @@ import LoanPage from './pages/LoanPage.tsx'
 import NotificationsPage from './pages/NotificationsPage.tsx'
 import GamePage from './pages/GamePage.tsx'
 import BookingDetailPage from './pages/BookingDetailPage.tsx'
+import { installAuth401Interceptor } from './utils/authFetch.ts'
 
+installAuth401Interceptor()
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker

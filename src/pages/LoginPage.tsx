@@ -1,7 +1,7 @@
 // src/pages/LoginPage.tsx
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { subscribeUser } from "../components/usePushNotifications";
 import "../style/LoginPage.css"; // Ensure you have this CSS file for styling
 
@@ -11,8 +11,15 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const redirectTarget = useMemo(() => {
+    const redirectParam = new URLSearchParams(location.search).get("redirect");
+    if (!redirectParam) return "/nydash";
+    if (!redirectParam.startsWith("/") || redirectParam.startsWith("//")) return "/nydash";
+    return redirectParam;
+  }, [location.search]);
 
   const handleLogin: (e: React.FormEvent<HTMLFormElement>) => Promise<void>  = async (e) => {
     e.preventDefault();
@@ -32,7 +39,7 @@ const LoginPage: React.FC = () => {
         subscribeUser().catch((err) => {
           console.warn("Push subscribe failed:", err);
         });
-        navigate("/nydash");
+        navigate(redirectTarget, { replace: true });
       } else {
         setError("Invalid credentials");
       }

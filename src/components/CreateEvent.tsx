@@ -1,6 +1,7 @@
 // src/components/CreateEventForm.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import { PageHeader } from "./PageHeaderProps";
 import "../style/CreateEvent.css";
 import "../style/LoanPage.css";
@@ -19,6 +20,10 @@ interface UserDto {
   username: string;
 }
 
+type JwtClaims = {
+  sub?: string;
+};
+
 const CreateEventForm: React.FC = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -35,6 +40,13 @@ const CreateEventForm: React.FC = () => {
   const navigate = useNavigate();
   const api = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem("jwt") || "";
+  let currentUsername = "";
+  try {
+    const decoded = jwtDecode<JwtClaims>(token);
+    currentUsername = decoded.sub || "";
+  } catch {
+    currentUsername = "";
+  }
 
   useEffect(() => {
     (async () => {
@@ -49,14 +61,18 @@ const CreateEventForm: React.FC = () => {
           throw new Error(`Failed to load users (${res.status})`);
         }
         const data = (await res.json()) as UserDto[];
-        setUsers(Array.isArray(data) ? data : []);
+        const allUsers = Array.isArray(data) ? data : [];
+        const filteredUsers = allUsers.filter(
+          (user) => user.username.toLowerCase() !== currentUsername.toLowerCase()
+        );
+        setUsers(filteredUsers);
       } catch (err) {
         setUsersError(err instanceof Error ? err.message : "Kunne ikke hente brukere.");
       } finally {
         setLoadingUsers(false);
       }
     })();
-  }, [api, token]);
+  }, [api, currentUsername, token]);
 
   const toggleInviteUser = (userId: number) => {
     setInvitedUserIds((prev) =>
@@ -81,13 +97,15 @@ const CreateEventForm: React.FC = () => {
       return setError("Sluttidspunkt maa vaere etter starttidspunkt.");
     }
 
+    const invitedIds = invitedUserIds.filter((id) => users.some((u) => u.id === id));
+
     const dto: EventDto = {
       title,
       description,
       location,
       startTime,
       endTime,
-      invitedUserIds,
+      invitedUserIds: invitedIds,
     };
 
     setLoading(true);

@@ -1,7 +1,6 @@
 // src/components/CreateEventForm.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
 import { PageHeader } from "./PageHeaderProps";
 import "../style/CreateEvent.css";
 import "../style/LoanPage.css";
@@ -20,10 +19,6 @@ interface UserDto {
   username: string;
 }
 
-type JwtClaims = {
-  sub?: string;
-};
-
 const CreateEventForm: React.FC = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -34,45 +29,60 @@ const CreateEventForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<UserDto[]>([]);
   const [invitedUserIds, setInvitedUserIds] = useState<number[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const api = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem("jwt") || "";
-  let currentUsername = "";
-  try {
-    const decoded = jwtDecode<JwtClaims>(token);
-    currentUsername = decoded.sub || "";
-  } catch {
-    currentUsername = "";
-  }
 
   useEffect(() => {
+    let alive = true;
     (async () => {
       try {
-        const res = await fetch(`${api}/api/users`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!res.ok) {
-          throw new Error(`Failed to load users (${res.status})`);
+        const headers = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        };
+
+        const [usersRes, meRes] = await Promise.all([
+          fetch(`${api}/api/users`, { headers }),
+          fetch(`${api}/api/users/me`, { headers }),
+        ]);
+
+        if (!usersRes.ok) {
+          throw new Error(`Failed to load users (${usersRes.status})`);
         }
-        const data = (await res.json()) as UserDto[];
+
+        const data = (await usersRes.json()) as UserDto[];
         const allUsers = Array.isArray(data) ? data : [];
-        const filteredUsers = allUsers.filter(
-          (user) => user.username.toLowerCase() !== currentUsername.toLowerCase()
-        );
+        let meId: number | null = null;
+        if (meRes.ok) {
+          const me = (await meRes.json()) as UserDto;
+          if (typeof me.id === "number") {
+            meId = me.id;
+          }
+        }
+
+        const filteredUsers = allUsers.filter((user) => (meId == null ? true : user.id !== meId));
+        if (!alive) return;
+
+        setCurrentUserId(meId);
         setUsers(filteredUsers);
+        setInvitedUserIds((prev) => prev.filter((id) => filteredUsers.some((u) => u.id === id)));
       } catch (err) {
+        if (!alive) return;
         setUsersError(err instanceof Error ? err.message : "Kunne ikke hente brukere.");
       } finally {
+        if (!alive) return;
         setLoadingUsers(false);
       }
     })();
-  }, [api, currentUsername, token]);
+    return () => {
+      alive = false;
+    };
+  }, [api, token]);
 
   const toggleInviteUser = (userId: number) => {
     setInvitedUserIds((prev) =>
@@ -97,7 +107,9 @@ const CreateEventForm: React.FC = () => {
       return setError("Sluttidspunkt maa vaere etter starttidspunkt.");
     }
 
-    const invitedIds = invitedUserIds.filter((id) => users.some((u) => u.id === id));
+    const invitedIds = invitedUserIds.filter(
+      (id) => users.some((u) => u.id === id) && id !== currentUserId
+    );
 
     const dto: EventDto = {
       title,

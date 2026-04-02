@@ -1,6 +1,6 @@
 // src/components/EventDetail.tsx
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import RsvpForm from "./RsvpForm";
 import "../style/EventDetail.css";
@@ -29,6 +29,25 @@ interface EventDetailDto {
   attendees: AttendanceDto[];
 }
 
+interface EventUpdateDto {
+  title: string;
+  description: string;
+  location?: string;
+  startTime: string;
+  endTime: string;
+}
+
+function toLocalDateTimeInput(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return iso.slice(0, 16);
+  }
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+}
+
 function formatDateTime(iso: string) {
   const d = new Date(iso);
   return {
@@ -39,48 +58,71 @@ function formatDateTime(iso: string) {
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const rawToken = localStorage.getItem("jwt") ?? "";
+  const currentUser = useMemo(() => {
+    try {
+      return (jwtDecode<{ sub: string }>(rawToken).sub || "").toLowerCase();
+    } catch {
+      return "";
+    }
+  }, [rawToken]);
 
   const [event, setEvent] = useState<EventDetailDto | null>(null);
   const [attendees, setAttendees] = useState<AttendanceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchEventDetail = useCallback(async () => {
+    const res = await fetch(`${apiBaseUrl}/api/events/${id}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${rawToken}`,
+      },
+    });
+    if (res.status === 404) {
+      throw new Error("Arrangement finnes ikke.");
+    }
+    if (!res.ok) {
+      throw new Error(`Kunne ikke hente event (${res.status})`);
+    }
+    const data: EventDetailDto = await res.json();
+    setEvent(data);
+    setAttendees(data.attendees);
+    const myAttendance = data.attendees.find((a) => a.username.toLowerCase() === currentUser);
+    const hasResponded = myAttendance?.status === "CAN" || myAttendance?.status === "CANNOT";
+    setShowForm(!hasResponded);
+    return data;
+  }, [apiBaseUrl, currentUser, id, rawToken]);
 
   useEffect(() => {
+    let alive = true;
     (async () => {
       try {
-        const rawToken = localStorage.getItem("jwt") ?? "";
-        let currentUser = "";
-        try {
-          ({ sub: currentUser } = jwtDecode<{ sub: string }>(rawToken));
-        } catch {
-          currentUser = "";
-        }
-
-        const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/events/${id}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${rawToken}`,
-            },
-          }
-        );
-        if (!res.ok) throw new Error(`Kunne ikke hente event (${res.status})`);
-        const data: EventDetailDto = await res.json();
-        setEvent(data);
-        setAttendees(data.attendees);
-
-        const myAttendance = data.attendees.find((a) => a.username === currentUser);
-        const hasResponded = myAttendance?.status === "CAN" || myAttendance?.status === "CANNOT";
-        setShowForm(!hasResponded);
+        await fetchEventDetail();
       } catch (e: unknown) {
+        if (!alive) return;
         setError(e instanceof Error ? e.message : "Ukjent feil ved lasting");
       } finally {
+        if (!alive) return;
         setLoading(false);
       }
     })();
-  }, [id]);
+    return () => {
+      alive = false;
+    };
+  }, [fetchEventDetail]);
 
   const handleNewRsvp = (att: AttendanceDto) => {
     setAttendees((prev) => prev.filter((a) => a.userId !== att.userId).concat(att));
@@ -97,6 +139,105 @@ const EventDetail: React.FC = () => {
   const canList = attendees.filter((a) => a.status === "CAN");
   const invitedList = attendees.filter((a) => a.status === "INVITED");
   const cannotList = attendees.filter((a) => a.status === "CANNOT");
+  const isOwner = event.createdBy.toLowerCase() === currentUser;
+
+  const openEdit = () => {
+    setActionMessage(null);
+    setEditTitle(event.title);
+    setEditDescription(event.description);
+    setEditLocation(event.location || "");
+    setEditStartTime(toLocalDateTimeInput(event.startTime));
+    setEditEndTime(toLocalDateTimeInput(event.endTime));
+    setIsEditOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionMessage(null);
+    if (!editTitle || !editDescription || !editStartTime || !editEndTime) {
+      setActionMessage("Fyll ut alle paakrevde felt.");
+      return;
+    }
+    const startDate = new Date(editStartTime);
+    const endDate = new Date(editEndTime);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      setActionMessage("Ugyldig dato/tid.");
+      return;
+    }
+    if (endDate.getTime() <= startDate.getTime()) {
+      setActionMessage("Sluttidspunkt maa vaere etter starttidspunkt.");
+      return;
+    }
+
+    const dto: EventUpdateDto = {
+      title: editTitle,
+      description: editDescription,
+      location: editLocation || undefined,
+      startTime: editStartTime,
+      endTime: editEndTime,
+    };
+
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/events/${event.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${rawToken}`,
+        },
+        body: JSON.stringify(dto),
+      });
+
+      if (res.status === 403) {
+        throw new Error("Du eier ikke dette eventet");
+      }
+      if (res.status === 404) {
+        throw new Error("Arrangement finnes ikke.");
+      }
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        throw new Error(msg || `Kunne ikke oppdatere event (${res.status})`);
+      }
+
+      await fetchEventDetail();
+      setIsEditOpen(false);
+      setActionMessage("Arrangement oppdatert.");
+    } catch (err) {
+      setActionMessage(err instanceof Error ? err.message : "Kunne ikke oppdatere event.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Slette dette arrangementet?")) return;
+    setActionMessage(null);
+    setDeleting(true);
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/events/${event.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${rawToken}`,
+        },
+      });
+      if (res.status === 403) {
+        throw new Error("Du eier ikke dette eventet");
+      }
+      if (res.status === 404) {
+        throw new Error("Arrangement finnes ikke.");
+      }
+      if (!res.ok && res.status !== 204) {
+        const msg = await res.text().catch(() => "");
+        throw new Error(msg || `Kunne ikke slette event (${res.status})`);
+      }
+
+      navigate("/dugnad", { replace: true });
+    } catch (err) {
+      setActionMessage(err instanceof Error ? err.message : "Kunne ikke slette event.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="eventDetailPage">
@@ -116,7 +257,91 @@ const EventDetail: React.FC = () => {
           </div>
           <p className="eventDesc">{event.description}</p>
           <p className="eventCreator">Opprettet av: {event.createdBy}</p>
+          {isOwner ? (
+            <div className="eventOwnerActions">
+              <button type="button" className="eventOwnerBtn" onClick={openEdit}>
+                Rediger
+              </button>
+              <button
+                type="button"
+                className="eventOwnerBtn eventOwnerBtnDanger"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? "Sletter..." : "Slett"}
+              </button>
+            </div>
+          ) : null}
+          {actionMessage ? <div className="eventActionNotice">{actionMessage}</div> : null}
         </section>
+
+        {isEditOpen ? (
+          <section className="section card eventEditCard">
+            <div className="sectionTitle">Rediger arrangement</div>
+            <form onSubmit={handleSaveEdit} className="eventEditForm">
+              <label className="field">
+                <span>Tittel</span>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Beskrivelse</span>
+                <textarea
+                  rows={3}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Sted</span>
+                <input
+                  type="text"
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                />
+              </label>
+              <div className="eventEditGrid">
+                <label className="field">
+                  <span>Starttidspunkt</span>
+                  <input
+                    type="datetime-local"
+                    value={editStartTime}
+                    onChange={(e) => setEditStartTime(e.target.value)}
+                    required
+                  />
+                </label>
+                <label className="field">
+                  <span>Sluttidspunkt</span>
+                  <input
+                    type="datetime-local"
+                    value={editEndTime}
+                    onChange={(e) => setEditEndTime(e.target.value)}
+                    min={editStartTime || undefined}
+                    required
+                  />
+                </label>
+              </div>
+              <div className="eventEditActions">
+                <button type="submit" className="eventOwnerBtn" disabled={savingEdit}>
+                  {savingEdit ? "Lagrer..." : "Lagre endringer"}
+                </button>
+                <button
+                  type="button"
+                  className="eventOwnerBtn eventOwnerBtnGhost"
+                  onClick={() => setIsEditOpen(false)}
+                  disabled={savingEdit}
+                >
+                  Avbryt
+                </button>
+              </div>
+            </form>
+          </section>
+        ) : null}
 
         <section className="section card eventRsvp">
           <div className="sectionTitle">Din respons</div>

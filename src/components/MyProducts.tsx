@@ -23,6 +23,18 @@ const MyProducts: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
+  const handleItemsUpdated = (nextItems: Item[]) => {
+    setItems(nextItems);
+    setImageVersionById((prev) => {
+      const next: Record<number, number> = {};
+      nextItems.forEach((item) => {
+        if (prev[item.id]) next[item.id] = prev[item.id];
+      });
+      return next;
+    });
+    setShowForm(false);
+  };
+
   useEffect(() => {
     (async () => {
       const token = localStorage.getItem("jwt");
@@ -49,23 +61,42 @@ const MyProducts: React.FC = () => {
     setEditItemId(null);
   };
 
-  const handleDelete = async (itemId: number) => {
-    const token = localStorage.getItem("jwt");
-    const res = await fetch(`${apiBaseUrl}/api/items/${itemId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      setItems((prev) => prev.filter((i) => i.id !== itemId));
-      setImageVersionById((prev) => {
-        const next = { ...prev };
-        delete next[itemId];
-        return next;
-      });
-      setEditItemId(null);
-    } else {
-      alert("Kunne ikke slette produkt");
+  const handleDelete = async (itemId: number): Promise<boolean> => {
+    const token = localStorage.getItem("jwt") || "";
+    if (!token) {
+      alert("Du maa vaere logget inn.");
+      return false;
     }
+
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/items/${itemId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        setItems((prev) => prev.filter((i) => i.id !== itemId));
+        setImageVersionById((prev) => {
+          const next = { ...prev };
+          delete next[itemId];
+          return next;
+        });
+        setEditItemId(null);
+        return true;
+      }
+
+      const message = await res.text().catch(() => "");
+      if (res.status === 403) {
+        alert(message || "Du eier ikke dette produktet.");
+      } else {
+        alert(message || "Kunne ikke slette produkt.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Noe gikk galt ved sletting av produkt.");
+    }
+
+    return false;
   };
 
   const handleChooseImage = (itemId: number, file: File | null) => {
@@ -103,6 +134,9 @@ const MyProducts: React.FC = () => {
 
       if (!res.ok) {
         const message = await res.text().catch(() => "");
+        if (res.status === 403) {
+          throw new Error(message || "Du eier ikke dette produktet.");
+        }
         throw new Error(message || `Upload feilet (${res.status})`);
       }
 
@@ -136,7 +170,7 @@ const MyProducts: React.FC = () => {
 
       {showForm && (
         <div className="myProductsForm">
-          <AddItemForm />
+          <AddItemForm onItemsUpdated={handleItemsUpdated} />
         </div>
       )}
 
@@ -193,7 +227,7 @@ const MyProducts: React.FC = () => {
                       currentName={item.name}
                       onClose={() => setEditItemId(null)}
                       onUpdate={(newName) => handleUpdate(item.id, newName)}
-                      onDelete={() => handleDelete(item.id)}
+                      onDelete={handleDelete}
                     />
                     <ItemAvailabilityEditor itemId={item.id} />
                   </div>

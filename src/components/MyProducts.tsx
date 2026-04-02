@@ -4,14 +4,20 @@ import "../style/MyProducts.css";
 import EditItemForm from "./EditItemForm";
 import AddItemForm from "./AddItemForm";
 import ItemAvailabilityEditor from "./ItemAvailabilityEditor";
+import { resolveItemImageUrl } from "../utils/itemImage";
 
 interface Item {
   id: number;
   name: string;
+  imageUrl?: string | null;
 }
 
 const MyProducts: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
+  const [imageVersionById, setImageVersionById] = useState<Record<number, number>>({});
+  const [selectedFiles, setSelectedFiles] = useState<Record<number, File | null>>({});
+  const [uploadMessages, setUploadMessages] = useState<Record<number, string>>({});
+  const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [editItemId, setEditItemId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -51,9 +57,72 @@ const MyProducts: React.FC = () => {
     });
     if (res.ok) {
       setItems((prev) => prev.filter((i) => i.id !== itemId));
+      setImageVersionById((prev) => {
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
       setEditItemId(null);
     } else {
       alert("Kunne ikke slette produkt");
+    }
+  };
+
+  const handleChooseImage = (itemId: number, file: File | null) => {
+    setSelectedFiles((prev) => ({ ...prev, [itemId]: file }));
+    setUploadMessages((prev) => ({ ...prev, [itemId]: "" }));
+  };
+
+  const handleUploadImage = async (itemId: number) => {
+    const file = selectedFiles[itemId];
+    if (!file) {
+      setUploadMessages((prev) => ({ ...prev, [itemId]: "Velg en bildefil foerst." }));
+      return;
+    }
+
+    const token = localStorage.getItem("jwt") || "";
+    if (!token) {
+      setUploadMessages((prev) => ({ ...prev, [itemId]: "Du maa vaere logget inn." }));
+      return;
+    }
+
+    setUploadingItemId(itemId);
+    setUploadMessages((prev) => ({ ...prev, [itemId]: "" }));
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(`${apiBaseUrl}/api/items/${itemId}/image`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const message = await res.text().catch(() => "");
+        throw new Error(message || `Upload feilet (${res.status})`);
+      }
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === itemId
+            ? { ...item, imageUrl: item.imageUrl || `/api/items/${itemId}/image` }
+            : item
+        )
+      );
+      setImageVersionById((prev) => ({ ...prev, [itemId]: Date.now() }));
+      setSelectedFiles((prev) => ({ ...prev, [itemId]: null }));
+      setUploadMessages((prev) => ({ ...prev, [itemId]: "Bilde lastet opp." }));
+    } catch (err) {
+      setUploadMessages((prev) => ({
+        ...prev,
+        [itemId]: err instanceof Error ? err.message : "Kunne ikke laste opp bilde.",
+      }));
+    } finally {
+      setUploadingItemId(null);
     }
   };
 
@@ -80,12 +149,34 @@ const MyProducts: React.FC = () => {
           {items.map((item) => (
             <div key={item.id} className="myProductCard">
               <img
-                src={`https://picsum.photos/seed/${item.id}/400/200`}
+                src={
+                  resolveItemImageUrl(apiBaseUrl, item.imageUrl, imageVersionById[item.id]) ||
+                  `https://picsum.photos/seed/${item.id}/400/200`
+                }
                 alt={item.name}
                 className="myProductThumb"
               />
               <div className="myProductBody">
                 <h3 className="myProductTitle">{item.name}</h3>
+                <div className="myImageUploadRow">
+                  <input
+                    className="myImageInput"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleChooseImage(item.id, e.target.files?.[0] || null)}
+                  />
+                  <button
+                    type="button"
+                    className="ghostBtn"
+                    onClick={() => handleUploadImage(item.id)}
+                    disabled={uploadingItemId === item.id}
+                  >
+                    {uploadingItemId === item.id ? "Laster opp..." : "Last opp bilde"}
+                  </button>
+                </div>
+                {uploadMessages[item.id] ? (
+                  <p className="myUploadMessage">{uploadMessages[item.id]}</p>
+                ) : null}
                 <button
                   className="ghostBtn"
                   onClick={() =>

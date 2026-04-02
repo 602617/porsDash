@@ -7,6 +7,7 @@ import FullCalendar from '@fullcalendar/react';
 import type { EventInput, EventClickArg } from '@fullcalendar/core';
 import '../style/ItemDetail.css';
 import "../style/LoanPage.css";
+import { resolveItemImageUrl } from '../utils/itemImage';
 
 interface Slot {
   id: number;
@@ -24,6 +25,7 @@ interface Item {
   id: number;
   name: string;
   username: string;
+  imageUrl?: string | null;
 }
 
 function normalizeBookingStatus(status: unknown): BookingStatus {
@@ -109,6 +111,7 @@ const ItemDetail: React.FC = () => {
   if (itemLoading) return <p className="itemDetailState">Laster produkt...</p>;
   if (!item) return <p className="itemDetailState">Produkt ikke funnet.</p>;
   if (loading) return <p className="itemDetailState">Laster tilgjengelighet...</p>;
+  const imageSrc = resolveItemImageUrl(api, item.imageUrl) || `https://picsum.photos/seed/${item.id}/800/300`;
 
   const pad = (n: number) => String(n).padStart(2, "0");
   const toDateInput = (d: Date) =>
@@ -206,6 +209,11 @@ const ItemDetail: React.FC = () => {
       <div className="bgGlow" />
       <main className="itemDetailMain">
         <section className="section card itemHeader">
+          <img
+            src={imageSrc}
+            alt={item.name}
+            className="itemHeroImage"
+          />
           <div className="chip">Booking</div>
           <h1 className="itemTitle">{item.name}</h1>
           <p className="itemMeta">Utleier: {item.username}</p>

@@ -26,6 +26,14 @@
   text-align: left;
 }
 
+.itemHeroImage {
+  width: 100%;
+  height: 180px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid var(--stroke);
+}
+
 .itemTitle {
   margin: 0;
   font-size: 1.4rem;
@@ -214,6 +222,10 @@
 }
 
 @media (min-width: 640px) {
+  .itemHeroImage {
+    height: 220px;
+  }
+
   .itemTitle {
     font-size: 1.6rem;
   }

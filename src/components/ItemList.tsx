@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import "../style/ItemList.css"
+import { resolveItemImageUrl } from '../utils/itemImage';
 
 interface Item {
   id: number;
   name: string;
   username: string;
+  imageUrl?: string | null;
 }
 
 const ItemList: React.FC = () => {
@@ -13,11 +15,10 @@ const ItemList: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const token = localStorage.getItem("jwt") || "";
 
   useEffect(() => {
     const fetchItems = async () => {
-      const token = localStorage.getItem("jwt");
-
       if (!token) {
         console.warn("No JWT token found in localStorage");
         setLoading(false);
@@ -47,7 +48,7 @@ const ItemList: React.FC = () => {
     };
 
     fetchItems();
-  }, []);
+  }, [apiBaseUrl, token]);
 
   if (loading) return <div className="itemLoading">Loading...</div>;
 
@@ -61,7 +62,7 @@ const ItemList: React.FC = () => {
           items.map((item) => (
             <div key={item.id} className="itemCard">
               <img
-                src={`https://picsum.photos/seed/${item.id}/400/200`}
+                src={resolveItemImageUrl(apiBaseUrl, item.imageUrl) || `https://picsum.photos/seed/${item.id}/400/200`}
                 alt={item.name}
                 className="itemThumb"
               />

@@ -5,6 +5,7 @@ import EditItemForm from "./EditItemForm";
 import AddItemForm from "./AddItemForm";
 import ItemAvailabilityEditor from "./ItemAvailabilityEditor";
 import { resolveItemImageUrl } from "../utils/itemImage";
+import { readStoredJwt } from "../utils/jwtToken";
 
 interface Item {
   id: number;
@@ -37,7 +38,7 @@ const MyProducts: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      const token = localStorage.getItem("jwt");
+      const token = readStoredJwt();
       try {
         const res = await fetch(`${apiBaseUrl}/api/items/myproducts`, {
           headers: {
@@ -62,7 +63,7 @@ const MyProducts: React.FC = () => {
   };
 
   const handleDelete = async (itemId: number): Promise<boolean> => {
-    const token = localStorage.getItem("jwt") || "";
+    const token = readStoredJwt();
     if (!token) {
       alert("Du maa vaere logget inn.");
       return false;
@@ -111,7 +112,7 @@ const MyProducts: React.FC = () => {
       return;
     }
 
-    const token = localStorage.getItem("jwt") || "";
+    const token = readStoredJwt();
     if (!token) {
       setUploadMessages((prev) => ({ ...prev, [itemId]: "Du maa vaere logget inn." }));
       return;

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { readStoredJwt } from "../utils/jwtToken";
 
 interface ItemSummary {
   id: number;
@@ -39,7 +40,7 @@ const AddItemForm: React.FC<AddItemFormProps> = ({ onItemsUpdated }) => {
     e.preventDefault();
     setMessage("");
 
-    const token = localStorage.getItem("jwt");
+    const token = readStoredJwt();
     if (!token) {
       setMessage("Du maa vaere logget inn");
       return;

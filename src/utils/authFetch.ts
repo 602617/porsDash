@@ -48,6 +48,26 @@ function handleUnauthorized() {
   window.location.assign(loginUrl);
 }
 
+async function shouldHandleForbiddenAsUnauthorized(response: Response): Promise<boolean> {
+  const bodyText = (await response.clone().text().catch(() => "")).trim().toLowerCase();
+  if (!bodyText) return true;
+
+  // Ownership checks in this app intentionally return 403 and should not force logout.
+  if (bodyText.includes("du eier ikke")) return false;
+
+  if (
+    bodyText.includes("forbidden") ||
+    bodyText.includes("access denied") ||
+    bodyText.includes("unauthorized") ||
+    bodyText.includes("full authentication")
+  ) {
+    return true;
+  }
+
+  // Fallback: treat unknown 403 bodies as auth failures to avoid stale-token loops.
+  return true;
+}
+
 export function installAuth401Interceptor() {
   if (interceptorInstalled || typeof window === "undefined") return;
   interceptorInstalled = true;
@@ -57,8 +77,15 @@ export function installAuth401Interceptor() {
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const response = await originalFetch(input, init);
 
-    if (response.status === 401 && shouldHandleUnauthorized(input)) {
-      handleUnauthorized();
+    if (shouldHandleUnauthorized(input)) {
+      if (response.status === 401) {
+        handleUnauthorized();
+      } else if (response.status === 403) {
+        const shouldRedirect = await shouldHandleForbiddenAsUnauthorized(response);
+        if (shouldRedirect) {
+          handleUnauthorized();
+        }
+      }
     }
 
     return response;

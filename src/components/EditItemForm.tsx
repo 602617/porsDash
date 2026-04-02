@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { readStoredJwt } from "../utils/jwtToken";
 
 interface EditItemFormProps {
   itemId: number;
@@ -24,7 +25,7 @@ const EditItemForm: React.FC<EditItemFormProps> = ({
     e.preventDefault();
     setFormMessage("");
 
-    const token = localStorage.getItem("jwt");
+    const token = readStoredJwt();
     if (!token) {
       setFormMessage("Du maa vaere logget inn.");
       return;

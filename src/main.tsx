@@ -23,11 +23,7 @@ import GamePage from './pages/GamePage.tsx'
 import BookingDetailPage from './pages/BookingDetailPage.tsx'
 import MyBookingsPage from './pages/MyBookingsPage.tsx'
 import { installAuth401Interceptor } from './utils/authFetch.ts'
-
-function readStoredJwt(): string {
-  if (typeof window === 'undefined') return ''
-  return localStorage.getItem('jwt') || ''
-}
+import { readStoredJwt } from './utils/jwtToken.ts'
 
 function getSafeRedirectPath(search: string): string | null {
   const redirect = new URLSearchParams(search).get('redirect')

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 
 import { useLocation, useNavigate } from "react-router-dom";
 import { subscribeUser } from "../components/usePushNotifications";
+import { storeJwt } from "../utils/jwtToken";
 import "../style/LoginPage.css"; // Ensure you have this CSS file for styling
 
 
@@ -35,7 +36,11 @@ const LoginPage: React.FC = () => {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("jwt", data.token);
+        const persisted = storeJwt(data?.token ?? data?.jwt);
+        if (!persisted) {
+          setError("Login feilet: mangler gyldig token.");
+          return;
+        }
         subscribeUser().catch((err) => {
           console.warn("Push subscribe failed:", err);
         });

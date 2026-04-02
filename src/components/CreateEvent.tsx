@@ -1,6 +1,7 @@
 // src/components/CreateEventForm.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import { PageHeader } from "./PageHeaderProps";
 import "../style/CreateEvent.css";
 import "../style/LoanPage.css";
@@ -19,6 +20,10 @@ interface UserDto {
   username: string;
 }
 
+type JwtClaims = {
+  sub?: string;
+};
+
 const CreateEventForm: React.FC = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -36,6 +41,13 @@ const CreateEventForm: React.FC = () => {
   const navigate = useNavigate();
   const api = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem("jwt") || "";
+  let currentUsername = "";
+  try {
+    const decoded = jwtDecode<JwtClaims>(token);
+    currentUsername = (decoded.sub || "").toLowerCase();
+  } catch {
+    currentUsername = "";
+  }
 
   useEffect(() => {
     let alive = true;
@@ -65,7 +77,13 @@ const CreateEventForm: React.FC = () => {
           }
         }
 
-        const filteredUsers = allUsers.filter((user) => (meId == null ? true : user.id !== meId));
+        const filteredUsers = allUsers.filter((user) => {
+          const sameId = meId == null ? false : user.id === meId;
+          const sameUsername = currentUsername
+            ? user.username.toLowerCase() === currentUsername
+            : false;
+          return !sameId && !sameUsername;
+        });
         if (!alive) return;
 
         setCurrentUserId(meId);
@@ -82,7 +100,7 @@ const CreateEventForm: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, [api, token]);
+  }, [api, currentUsername, token]);
 
   const toggleInviteUser = (userId: number) => {
     setInvitedUserIds((prev) =>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../style/MyBookings.css";
+import { resolveItemImageUrl } from "../utils/itemImage";
 
 type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 
@@ -14,8 +15,11 @@ interface BookingDto {
   name?: string;
   itemName?: string;
   itemTitle?: string;
+  imageUrl?: string;
+  itemImageUrl?: string;
   item?: {
     name?: string;
+    imageUrl?: string;
   };
 }
 
@@ -48,6 +52,14 @@ function itemLabelFor(booking: BookingDto): string {
 
 function bookingLabelFor(booking: BookingDto): string {
   return booking.bookingName || booking.name || "Booking";
+}
+
+function bookingImageFor(booking: BookingDto, apiBaseUrl: string): string {
+  const imageFromDto = booking.itemImageUrl || booking.imageUrl || booking.item?.imageUrl;
+  return (
+    resolveItemImageUrl(apiBaseUrl, imageFromDto || `/api/items/${booking.itemId}/image`) ||
+    `https://picsum.photos/seed/${booking.itemId}/480/240`
+  );
 }
 
 const MyBookings: React.FC = () => {
@@ -147,8 +159,18 @@ const MyBookings: React.FC = () => {
           {bookings.map((booking) => {
             const status = normalizeStatus(booking.status);
             const statusClass = `myBookingStatus myBookingStatus--${status.toLowerCase()}`;
+            const fallbackImage = `https://picsum.photos/seed/${booking.itemId}/480/240`;
             return (
               <div key={booking.id} className="myBookingCard">
+                <img
+                  src={bookingImageFor(booking, apiBaseUrl)}
+                  alt={itemLabelFor(booking)}
+                  className="myBookingThumb"
+                  onError={(event) => {
+                    if (event.currentTarget.src === fallbackImage) return;
+                    event.currentTarget.src = fallbackImage;
+                  }}
+                />
                 <div className="myBookingTop">
                   <h3 className="myBookingTitle">{itemLabelFor(booking)}</h3>
                   <span className={statusClass}>{status}</span>

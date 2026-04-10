@@ -82,3 +82,119 @@
 .notificationMute:hover {
   color: var(--text);
 }
+
+.persistentBookingList {
+  display: grid;
+  gap: 10px;
+}
+
+.persistentBookingItem {
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.22);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.persistentBookingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.persistentBookingTitle {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.persistentBookingStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.persistentBookingStatus--pending {
+  background: rgba(231, 168, 63, 0.18);
+  border-color: rgba(231, 168, 63, 0.55);
+  color: #ffd697;
+}
+
+.persistentBookingStatus--confirmed {
+  background: rgba(106, 194, 184, 0.18);
+  border-color: rgba(106, 194, 184, 0.55);
+  color: #b9fff8;
+}
+
+.persistentBookingStatus--cancelled {
+  background: rgba(138, 143, 158, 0.16);
+  border-color: rgba(138, 143, 158, 0.4);
+  color: #d5dae8;
+}
+
+.persistentBookingStatus--declined {
+  background: rgba(244, 114, 182, 0.14);
+  border-color: rgba(244, 114, 182, 0.4);
+  color: #ffd3e9;
+}
+
+.persistentBookingMessage {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.persistentBookingMeta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.persistentBookingActions {
+  margin-top: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notificationApprove {
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid rgba(106, 194, 184, 0.55);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(106, 194, 184, 0.16);
+  color: #b9fff8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notificationApprove:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.notificationCancel {
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid rgba(244, 114, 182, 0.4);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(244, 114, 182, 0.12);
+  color: #ffd3e9;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notificationCancel:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

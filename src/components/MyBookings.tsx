@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import "../style/MyBookings.css";
 import { resolveItemImageUrl } from "../utils/itemImage";
 
-type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
+type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "DECLINED";
 
 interface BookingDto {
   id: number;
@@ -24,7 +24,7 @@ interface BookingDto {
 }
 
 function normalizeStatus(status: unknown): BookingStatus {
-  if (status === "PENDING" || status === "CONFIRMED" || status === "CANCELLED") {
+  if (status === "PENDING" || status === "CONFIRMED" || status === "CANCELLED" || status === "DECLINED") {
     return status;
   }
   return "PENDING";
@@ -102,7 +102,7 @@ const MyBookings: React.FC = () => {
 
   const handleCancel = async (booking: BookingDto) => {
     const status = normalizeStatus(booking.status);
-    if (status === "CANCELLED") return;
+    if (status === "CANCELLED" || status === "DECLINED") return;
 
     const accepted = window.confirm("Avbryte denne bookingen?");
     if (!accepted) return;
@@ -193,7 +193,7 @@ const MyBookings: React.FC = () => {
                   >
                     Aapne detaljer
                   </Link>
-                  {status !== "CANCELLED" ? (
+                  {status !== "CANCELLED" && status !== "DECLINED" ? (
                     <button
                       type="button"
                       className="loanDangerBtn myBookingActionBtn"

@@ -64,6 +64,12 @@
   background: rgba(138,143,158,0.20);
 }
 
+.bookingStatus--declined {
+  color: #ffd3e9;
+  border-color: rgba(244,114,182,0.42);
+  background: rgba(244,114,182,0.14);
+}
+
 .bookingMeta {
   font-size: 12px;
   color: rgba(255,255,255,0.65);

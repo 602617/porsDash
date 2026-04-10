@@ -5,11 +5,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { unsubscribeUser } from './usePushNotifications';
 import { Bell } from 'lucide-react';
 import { resolveNotificationTarget } from '../utils/notificationTarget';
+import {
+  clearAllPersistentBookingRequests,
+  seedPersistentBookingRequestsFromNotifications,
+} from '../utils/persistentBookingRequests';
 
 interface NotificationDto {
   id: number;
   message: string;
-  url: string;
+  url?: string | null;
 }
 
 const Topbar: React.FC = () => {
@@ -17,18 +21,31 @@ const Topbar: React.FC = () => {
   const [notes, setNotes] = useState<NotificationDto[]>([]);
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const navigate = useNavigate();
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const rawToken = localStorage.getItem('jwt') || '';
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch unread notifications on mount
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/notifications`, {
+    fetch(`${apiBaseUrl}/api/notifications`, {
       headers: { Authorization: `Bearer ${rawToken}` }
     })
-      .then(res => res.json())
-      .then((data: NotificationDto[]) => setNotes(data))
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`Could not load notifications (${res.status})`);
+        }
+        return (await res.json()) as NotificationDto[];
+      })
+      .then((data: NotificationDto[]) => {
+        setNotes(data);
+        void seedPersistentBookingRequestsFromNotifications({
+          apiBaseUrl,
+          token: rawToken,
+          notifications: data,
+        }).catch(console.error);
+      })
       .catch(console.error);
-  }, [rawToken]);
+  }, [apiBaseUrl, rawToken]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -50,6 +67,7 @@ const Topbar: React.FC = () => {
     } catch (err) {
       console.warn('Push unsubscribe failed:', err);
     } finally {
+      clearAllPersistentBookingRequests();
       localStorage.removeItem('jwt');
       navigate('/login');
     }
@@ -57,7 +75,7 @@ const Topbar: React.FC = () => {
 
   const markRead = async (id: number) => {
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/notifications/${id}/read`, {
+      await fetch(`${apiBaseUrl}/api/notifications/${id}/read`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${rawToken}` }
       });
@@ -68,10 +86,15 @@ const Topbar: React.FC = () => {
   };
 
   const openNotification = async (note: NotificationDto) => {
+    void seedPersistentBookingRequestsFromNotifications({
+      apiBaseUrl,
+      token: rawToken,
+      notifications: [note],
+    }).catch(console.error);
     await markRead(note.id);
     setMenuOpen(false);
 
-    const target = resolveNotificationTarget(note.url, import.meta.env.VITE_API_BASE_URL);
+    const target = resolveNotificationTarget(note.url, apiBaseUrl);
     if (!target) return;
 
     if (target.type === 'external') {

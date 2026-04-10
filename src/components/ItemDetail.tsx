@@ -14,7 +14,7 @@ interface Slot {
   startTime: string;
   endTime: string;
 }
-type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'DECLINED';
 interface Booking {
   id: number;
   startTime: string;
@@ -29,7 +29,7 @@ interface Item {
 }
 
 function normalizeBookingStatus(status: unknown): BookingStatus {
-  if (status === 'PENDING' || status === 'CONFIRMED' || status === 'CANCELLED') {
+  if (status === 'PENDING' || status === 'CONFIRMED' || status === 'CANCELLED' || status === 'DECLINED') {
     return status;
   }
   return 'CONFIRMED';
@@ -38,6 +38,7 @@ function normalizeBookingStatus(status: unknown): BookingStatus {
 function bookingStatusColor(status: BookingStatus): string {
   if (status === 'PENDING') return '#e7a83f';
   if (status === 'CANCELLED') return '#8a8f9e';
+  if (status === 'DECLINED') return '#e96aa6';
   return '#6AC2B8';
 }
 

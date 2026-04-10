@@ -13,7 +13,7 @@ type Booking = {
   username: string;
   startTime: string;
   endTime: string;
-  status?: "PENDING" | "CONFIRMED" | "CANCELLED" | string;
+  status?: "PENDING" | "CONFIRMED" | "CANCELLED" | "DECLINED" | string;
 };
 
 type Item = {
@@ -39,8 +39,8 @@ function formatDateTime(iso: string) {
   }).format(d);
 }
 
-function normalizeBookingStatus(status: unknown): "PENDING" | "CONFIRMED" | "CANCELLED" {
-  if (status === "PENDING" || status === "CONFIRMED" || status === "CANCELLED") {
+function normalizeBookingStatus(status: unknown): "PENDING" | "CONFIRMED" | "CANCELLED" | "DECLINED" {
+  if (status === "PENDING" || status === "CONFIRMED" || status === "CANCELLED" || status === "DECLINED") {
     return status;
   }
   return "CONFIRMED";
@@ -55,6 +55,7 @@ const BookingDetailPage: React.FC = () => {
   >("loading");
   const [error, setError] = useState("");
   const [isApproving, setIsApproving] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
   const [approveMessage, setApproveMessage] = useState("");
   const [approveMessageType, setApproveMessageType] = useState<"idle" | "success" | "error">("idle");
 
@@ -207,6 +208,7 @@ const BookingDetailPage: React.FC = () => {
     Boolean(currentUsername) &&
     ownerUsername.toLowerCase() === currentUsername.toLowerCase();
   const canApprove = isOwner && bookingStatus === "PENDING";
+  const canDecline = isOwner && bookingStatus === "PENDING";
 
   const handleApprove = async () => {
     if (!itemId || !bookingId) return;
@@ -235,6 +237,39 @@ const BookingDetailPage: React.FC = () => {
       setApproveMessageType("error");
     } finally {
       setIsApproving(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    if (!itemId || !bookingId) return;
+    const accepted = window.confirm("Avvise denne bookingen?");
+    if (!accepted) return;
+
+    setIsDeclining(true);
+    setApproveMessage("");
+    setApproveMessageType("idle");
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/items/${itemId}/bookings/${bookingId}/decline`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Decline failed: ${res.status}`);
+      }
+
+      const updated = (await res.json()) as Booking;
+      setBooking((prev) => (prev ? { ...prev, ...updated } : updated));
+      setApproveMessage("Booking avvist.");
+      setApproveMessageType("success");
+    } catch (err) {
+      setApproveMessage(err instanceof Error ? err.message : "Kunne ikke avvise booking.");
+      setApproveMessageType("error");
+    } finally {
+      setIsDeclining(false);
     }
   };
 
@@ -274,9 +309,19 @@ const BookingDetailPage: React.FC = () => {
                 type="button"
                 className="loanGhostBtn bookingAction"
                 onClick={handleApprove}
-                disabled={isApproving}
+                disabled={isApproving || isDeclining}
               >
                 {isApproving ? "Godkjenner..." : "Godkjenn booking"}
+              </button>
+            ) : null}
+            {canDecline ? (
+              <button
+                type="button"
+                className="loanGhostBtn bookingAction"
+                onClick={handleDecline}
+                disabled={isApproving || isDeclining}
+              >
+                {isDeclining ? "Avviser..." : "Avvis booking"}
               </button>
             ) : null}
           </div>

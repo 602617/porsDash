@@ -106,6 +106,12 @@
   background: rgba(138, 143, 158, 0.2);
 }
 
+.myBookingStatus--declined {
+  color: #ffd3e9;
+  border-color: rgba(244, 114, 182, 0.42);
+  background: rgba(244, 114, 182, 0.14);
+}
+
 .myBookingActions {
   display: flex;
   flex-wrap: wrap;

@@ -53,15 +53,23 @@ const NotificationsPage: React.FC = () => {
     return Array.isArray(data) ? data : [];
   };
 
-  const fetchBookingRequests = async (notifications: NotificationDto[]) => {
+  const fetchBookingRequests = async (
+    notifications: NotificationDto[],
+    options?: { includeOwnerSync?: boolean }
+  ) => {
+    const includeOwnerSync = options?.includeOwnerSync ?? false;
     const seeded = await seedPersistentBookingRequestsFromNotifications({
       apiBaseUrl,
       token,
       notifications,
     });
     const refreshed = await refreshPersistentBookingRequests({ apiBaseUrl, token });
-    const synced = await syncPersistentBookingRequestsFromOwnerItems({ apiBaseUrl, token });
+    if (!includeOwnerSync) {
+      if (refreshed.length > 0) return refreshed;
+      return seeded;
+    }
 
+    const synced = await syncPersistentBookingRequestsFromOwnerItems({ apiBaseUrl, token });
     if (synced.length > 0) return synced;
     if (refreshed.length > 0) return refreshed;
     return seeded;
@@ -88,12 +96,20 @@ const NotificationsPage: React.FC = () => {
       } catch (e: unknown) {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "Ukjent feil");
+        if (alive && showLoading) {
+          setLoading(false);
+          setBookingLoading(false);
+        }
+        inFlight = false;
+        return;
       } finally {
         if (alive && showLoading) setLoading(false);
       }
 
       try {
-        const nextBookingRequests = await fetchBookingRequests(unreadNotifications);
+        const nextBookingRequests = await fetchBookingRequests(unreadNotifications, {
+          includeOwnerSync: showLoading,
+        });
         if (!alive) return;
         setBookingRequests(nextBookingRequests);
         setBookingError(null);
@@ -108,8 +124,9 @@ const NotificationsPage: React.FC = () => {
 
     void loadPageData(true);
     const pollId = window.setInterval(() => {
+      if (document.hidden) return;
       void loadPageData(false);
-    }, 30000);
+    }, 120000);
 
     return () => {
       alive = false;
@@ -152,7 +169,9 @@ const NotificationsPage: React.FC = () => {
 
   const refreshBookingRequests = async () => {
     const unreadNotifications = await fetchUnreadNotifications().catch(() => notes);
-    const nextBookingRequests = await fetchBookingRequests(unreadNotifications);
+    const nextBookingRequests = await fetchBookingRequests(unreadNotifications, {
+      includeOwnerSync: true,
+    });
     setBookingRequests(nextBookingRequests);
   };
 

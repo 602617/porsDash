@@ -2,6 +2,34 @@ let interceptorInstalled = false;
 let redirectInProgress = false;
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
+function normalizeToken(rawToken: string | null | undefined): string {
+  const token = (rawToken || "").trim();
+  if (!token) return "";
+  if (token.startsWith("Bearer ")) {
+    return token.slice("Bearer ".length).trim();
+  }
+  return token;
+}
+
+function tokenFromHeaders(headers: Headers | null): string {
+  if (!headers) return "";
+  return normalizeToken(headers.get("Authorization"));
+}
+
+function requestTokenFromFetchArgs(input: RequestInfo | URL, init?: RequestInit): string {
+  if (init?.headers) {
+    try {
+      return tokenFromHeaders(new Headers(init.headers));
+    } catch {
+      // Ignore header parsing failure and fall back to request object.
+    }
+  }
+  if (input instanceof Request) {
+    return tokenFromHeaders(input.headers);
+  }
+  return "";
+}
+
 function getRequestUrl(input: RequestInfo | URL): URL | null {
   try {
     if (input instanceof Request) {
@@ -36,12 +64,17 @@ function getCurrentPathWithQuery(): string {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
 
-function handleUnauthorized() {
-  localStorage.removeItem("jwt");
+function handleUnauthorized(requestToken = "") {
+  const currentToken = normalizeToken(localStorage.getItem("jwt"));
+  if (!currentToken) return;
+
+  // Ignore stale responses from old requests/tokens.
+  if (requestToken && requestToken !== currentToken) return;
 
   if (redirectInProgress) return;
   if (window.location.pathname === "/login") return;
 
+  localStorage.removeItem("jwt");
   redirectInProgress = true;
   const currentPath = getCurrentPathWithQuery();
   const loginUrl = `/login?redirect=${encodeURIComponent(currentPath)}`;
@@ -49,23 +82,28 @@ function handleUnauthorized() {
 }
 
 async function shouldHandleForbiddenAsUnauthorized(response: Response): Promise<boolean> {
+  const wwwAuth = response.headers.get("www-authenticate")?.toLowerCase() || "";
+  if (wwwAuth.includes("bearer")) {
+    return true;
+  }
+
   const bodyText = (await response.clone().text().catch(() => "")).trim().toLowerCase();
-  if (!bodyText) return true;
+  if (!bodyText) return false;
 
   // Ownership checks in this app intentionally return 403 and should not force logout.
   if (bodyText.includes("du eier ikke")) return false;
 
   if (
-    bodyText.includes("forbidden") ||
-    bodyText.includes("access denied") ||
     bodyText.includes("unauthorized") ||
-    bodyText.includes("full authentication")
+    bodyText.includes("full authentication") ||
+    bodyText.includes("invalid token") ||
+    bodyText.includes("jwt")
   ) {
     return true;
   }
 
-  // Fallback: treat unknown 403 bodies as auth failures to avoid stale-token loops.
-  return true;
+  // Most 403 responses here are permission/ownership issues, not session expiry.
+  return false;
 }
 
 export function installAuth401Interceptor() {
@@ -75,15 +113,16 @@ export function installAuth401Interceptor() {
   const originalFetch = window.fetch.bind(window);
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const requestToken = requestTokenFromFetchArgs(input, init);
     const response = await originalFetch(input, init);
 
     if (shouldHandleUnauthorized(input)) {
       if (response.status === 401) {
-        handleUnauthorized();
+        handleUnauthorized(requestToken);
       } else if (response.status === 403) {
         const shouldRedirect = await shouldHandleForbiddenAsUnauthorized(response);
         if (shouldRedirect) {
-          handleUnauthorized();
+          handleUnauthorized(requestToken);
         }
       }
     }

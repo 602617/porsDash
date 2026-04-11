@@ -23,6 +23,17 @@ const mapApiPathToInternalPath = (path: string): string => {
     return "/notifications";
   }
 
+  // Booking action endpoints should always open booking details in the SPA.
+  // Examples:
+  // /api/items/2/bookings/51/approve -> /items/2/bookings/51
+  // /api/items/2/bookings/51/decline -> /items/2/bookings/51
+  const bookingActionMatch =
+    path.match(/^\/api\/items\/(\d+)\/bookings\/(\d+)\/[a-z-]+$/i) ||
+    path.match(/^\/items\/(\d+)\/bookings\/(\d+)\/[a-z-]+$/i);
+  if (bookingActionMatch) {
+    return `/items/${bookingActionMatch[1]}/bookings/${bookingActionMatch[2]}`;
+  }
+
   // Convert API URLs into SPA routes, e.g. /api/items/2/bookings/51 -> /items/2/bookings/51
   if (path.startsWith("/api/")) {
     return path.slice(4);

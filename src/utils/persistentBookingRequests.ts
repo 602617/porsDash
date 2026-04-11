@@ -136,6 +136,12 @@ function toInternalBookingUrl(url: string | null | undefined, itemId: number, bo
 
   try {
     const parsed = new URL(trimmed, window.location.origin);
+    const actionMatch =
+      parsed.pathname.match(/^\/api\/items\/(\d+)\/bookings\/(\d+)\/[a-z-]+$/i) ||
+      parsed.pathname.match(/^\/items\/(\d+)\/bookings\/(\d+)\/[a-z-]+$/i);
+    if (actionMatch) {
+      return `/items/${actionMatch[1]}/bookings/${actionMatch[2]}`;
+    }
     const path = parsed.pathname.replace(/^\/api(?=\/)/i, "");
     return `${path}${parsed.search}${parsed.hash}` || `/items/${itemId}/bookings/${bookingId}`;
   } catch {

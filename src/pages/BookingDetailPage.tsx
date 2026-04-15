@@ -28,8 +28,13 @@ type JwtClaims = {
   preferred_username?: string;
 };
 
+type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "DECLINED";
+
 function formatDateTime(iso: string) {
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return "Ukjent tidspunkt";
+  }
   return new Intl.DateTimeFormat("nb-NO", {
     year: "numeric",
     month: "short",
@@ -39,7 +44,14 @@ function formatDateTime(iso: string) {
   }).format(d);
 }
 
-function normalizeBookingStatus(status: unknown): "PENDING" | "CONFIRMED" | "CANCELLED" | "DECLINED" {
+function toDateTimeLocalInput(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function normalizeBookingStatus(status: unknown): BookingStatus {
   if (status === "PENDING" || status === "CONFIRMED" || status === "CANCELLED" || status === "DECLINED") {
     return status;
   }
@@ -54,10 +66,15 @@ const BookingDetailPage: React.FC = () => {
     "loading" | "ok" | "unauthorized" | "forbidden" | "error"
   >("loading");
   const [error, setError] = useState("");
+
   const [isApproving, setIsApproving] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
-  const [approveMessage, setApproveMessage] = useState("");
-  const [approveMessageType, setApproveMessageType] = useState<"idle" | "success" | "error">("idle");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionMessageType, setActionMessageType] = useState<"idle" | "success" | "error">("idle");
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const token = useMemo(() => localStorage.getItem("jwt") || "", []);
@@ -65,7 +82,8 @@ const BookingDetailPage: React.FC = () => {
     if (!token) return "";
     try {
       const decoded = jwtDecode<JwtClaims>(token);
-      return decoded.sub || decoded.username || decoded.preferred_username || "";
+      const preferredIdentity = decoded.sub ?? decoded.username ?? decoded.preferred_username ?? "";
+      return typeof preferredIdentity === "string" ? preferredIdentity : String(preferredIdentity);
     } catch {
       return "";
     }
@@ -120,6 +138,8 @@ const BookingDetailPage: React.FC = () => {
 
         setItem(itemJson);
         setBooking(bookingJson);
+        setEditStartTime(toDateTimeLocalInput(bookingJson.startTime));
+        setEditEndTime(toDateTimeLocalInput(bookingJson.endTime));
         setStatus("ok");
       } catch (err) {
         if (!alive) return;
@@ -200,21 +220,38 @@ const BookingDetailPage: React.FC = () => {
   if (!item || !booking) {
     return null;
   }
+
   const bookingStatus = normalizeBookingStatus(booking.status);
   const bookingStatusClass = `bookingStatus bookingStatus--${bookingStatus.toLowerCase()}`;
   const ownerUsername = item.username || "";
+  const bookerUsername = booking.username || "";
   const isOwner =
     Boolean(ownerUsername) &&
     Boolean(currentUsername) &&
     ownerUsername.toLowerCase() === currentUsername.toLowerCase();
+  const isBooker =
+    Boolean(bookerUsername) &&
+    Boolean(currentUsername) &&
+    bookerUsername.toLowerCase() === currentUsername.toLowerCase();
+
   const canApprove = isOwner && bookingStatus === "PENDING";
   const canDecline = isOwner && bookingStatus === "PENDING";
+  const canEdit = isOwner && (bookingStatus === "PENDING" || bookingStatus === "CONFIRMED");
+  const canCancel =
+    (isOwner || isBooker) &&
+    bookingStatus !== "CANCELLED" &&
+    bookingStatus !== "DECLINED";
+
+  const setMessage = (type: "success" | "error", message: string) => {
+    setActionMessage(message);
+    setActionMessageType(type);
+  };
 
   const handleApprove = async () => {
     if (!itemId || !bookingId) return;
     setIsApproving(true);
-    setApproveMessage("");
-    setApproveMessageType("idle");
+    setActionMessage("");
+    setActionMessageType("idle");
     try {
       const res = await fetch(`${apiBaseUrl}/api/items/${itemId}/bookings/${bookingId}/approve`, {
         method: "POST",
@@ -230,11 +267,9 @@ const BookingDetailPage: React.FC = () => {
 
       const updated = (await res.json()) as Booking;
       setBooking((prev) => (prev ? { ...prev, ...updated } : updated));
-      setApproveMessage("Booking godkjent.");
-      setApproveMessageType("success");
+      setMessage("success", "Booking godkjent.");
     } catch (err) {
-      setApproveMessage(err instanceof Error ? err.message : "Kunne ikke godkjenne booking.");
-      setApproveMessageType("error");
+      setMessage("error", err instanceof Error ? err.message : "Kunne ikke godkjenne booking.");
     } finally {
       setIsApproving(false);
     }
@@ -246,8 +281,8 @@ const BookingDetailPage: React.FC = () => {
     if (!accepted) return;
 
     setIsDeclining(true);
-    setApproveMessage("");
-    setApproveMessageType("idle");
+    setActionMessage("");
+    setActionMessageType("idle");
     try {
       const res = await fetch(`${apiBaseUrl}/api/items/${itemId}/bookings/${bookingId}/decline`, {
         method: "POST",
@@ -263,13 +298,88 @@ const BookingDetailPage: React.FC = () => {
 
       const updated = (await res.json()) as Booking;
       setBooking((prev) => (prev ? { ...prev, ...updated } : updated));
-      setApproveMessage("Booking avvist.");
-      setApproveMessageType("success");
+      setMessage("success", "Booking avvist.");
     } catch (err) {
-      setApproveMessage(err instanceof Error ? err.message : "Kunne ikke avvise booking.");
-      setApproveMessageType("error");
+      setMessage("error", err instanceof Error ? err.message : "Kunne ikke avvise booking.");
     } finally {
       setIsDeclining(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!itemId || !bookingId) return;
+    if (!editStartTime || !editEndTime) {
+      setMessage("error", "Velg både start- og sluttid.");
+      return;
+    }
+
+    const start = new Date(editStartTime);
+    const end = new Date(editEndTime);
+    if (!(end > start)) {
+      setMessage("error", "Sluttid må være etter starttid.");
+      return;
+    }
+
+    setIsSavingEdit(true);
+    setActionMessage("");
+    setActionMessageType("idle");
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/items/${itemId}/bookings/${bookingId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startTime: editStartTime,
+          endTime: editEndTime,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Update failed: ${res.status}`);
+      }
+
+      const updated = (await res.json()) as Booking;
+      setBooking((prev) => (prev ? { ...prev, ...updated } : updated));
+      setEditStartTime(toDateTimeLocalInput(updated.startTime));
+      setEditEndTime(toDateTimeLocalInput(updated.endTime));
+      setMessage("success", "Booking oppdatert.");
+    } catch (err) {
+      setMessage("error", err instanceof Error ? err.message : "Kunne ikke oppdatere booking.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!itemId || !bookingId) return;
+    const accepted = window.confirm("Kansellere denne bookingen?");
+    if (!accepted) return;
+
+    setIsCancelling(true);
+    setActionMessage("");
+    setActionMessageType("idle");
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/items/${itemId}/bookings/${bookingId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Cancel failed: ${res.status}`);
+      }
+
+      setBooking((prev) => (prev ? { ...prev, status: "CANCELLED" } : prev));
+      setMessage("success", "Booking kansellert.");
+    } catch (err) {
+      setMessage("error", err instanceof Error ? err.message : "Kunne ikke kansellere booking.");
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -289,6 +399,9 @@ const BookingDetailPage: React.FC = () => {
             {item.username ? (
               <div className="bookingMeta">Utleier: {item.username}</div>
             ) : null}
+            {booking.username ? (
+              <div className="bookingMeta">Booket av: {booking.username}</div>
+            ) : null}
           </div>
           <div className="bookingGrid">
             <div className="bookingRow">
@@ -300,16 +413,50 @@ const BookingDetailPage: React.FC = () => {
               <span className="bookingValue">{formatDateTime(booking.endTime)}</span>
             </div>
           </div>
+
+          {canEdit ? (
+            <div className="bookingEditPanel">
+              <div className="bookingEditTitle">Endre bookingtid</div>
+              <div className="bookingEditGrid">
+                <label className="bookingEditField">
+                  <span>Ny start</span>
+                  <input
+                    type="datetime-local"
+                    value={editStartTime}
+                    onChange={(event) => setEditStartTime(event.target.value)}
+                  />
+                </label>
+                <label className="bookingEditField">
+                  <span>Ny slutt</span>
+                  <input
+                    type="datetime-local"
+                    value={editEndTime}
+                    min={editStartTime || undefined}
+                    onChange={(event) => setEditEndTime(event.target.value)}
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                className="loanGhostBtn bookingAction bookingSaveBtn"
+                onClick={handleSaveEdit}
+                disabled={isSavingEdit || isApproving || isDeclining || isCancelling}
+              >
+                {isSavingEdit ? "Lagrer..." : "Lagre endring"}
+              </button>
+            </div>
+          ) : null}
+
           <div className="bookingActions">
             <Link to={`/items/${itemId}`} className="loanPrimaryBtn bookingAction">
-              Ga til produkt
+              Gå til produkt
             </Link>
             {canApprove ? (
               <button
                 type="button"
                 className="loanGhostBtn bookingAction"
                 onClick={handleApprove}
-                disabled={isApproving || isDeclining}
+                disabled={isApproving || isDeclining || isSavingEdit || isCancelling}
               >
                 {isApproving ? "Godkjenner..." : "Godkjenn booking"}
               </button>
@@ -319,15 +466,25 @@ const BookingDetailPage: React.FC = () => {
                 type="button"
                 className="loanGhostBtn bookingAction"
                 onClick={handleDecline}
-                disabled={isApproving || isDeclining}
+                disabled={isApproving || isDeclining || isSavingEdit || isCancelling}
               >
                 {isDeclining ? "Avviser..." : "Avvis booking"}
               </button>
             ) : null}
+            {canCancel ? (
+              <button
+                type="button"
+                className="loanDangerBtn bookingAction"
+                onClick={handleCancel}
+                disabled={isApproving || isDeclining || isSavingEdit || isCancelling}
+              >
+                {isCancelling ? "Kansellerer..." : "Kanseller booking"}
+              </button>
+            ) : null}
           </div>
-          {approveMessage ? (
-            <div className={`formNotice ${approveMessageType === "error" ? "error" : "success"}`}>
-              {approveMessage}
+          {actionMessage ? (
+            <div className={`formNotice ${actionMessageType === "error" ? "error" : "success"}`}>
+              {actionMessage}
             </div>
           ) : null}
         </section>

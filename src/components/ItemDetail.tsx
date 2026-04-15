@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import interactionPlugin from '@fullcalendar/interaction';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import FullCalendar from '@fullcalendar/react';
 import type { EventInput, EventClickArg } from '@fullcalendar/core';
+import { jwtDecode } from 'jwt-decode';
 import '../style/ItemDetail.css';
 import "../style/LoanPage.css";
 import { resolveItemImageUrl } from '../utils/itemImage';
@@ -14,19 +15,29 @@ interface Slot {
   startTime: string;
   endTime: string;
 }
+
 type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'DECLINED';
+
 interface Booking {
   id: number;
   startTime: string;
   endTime: string;
   status?: BookingStatus | string;
+  username?: string;
 }
+
 interface Item {
   id: number;
   name: string;
   username: string;
   imageUrl?: string | null;
 }
+
+type JwtClaims = {
+  sub?: string;
+  username?: string;
+  preferred_username?: string;
+};
 
 function normalizeBookingStatus(status: unknown): BookingStatus {
   if (status === 'PENDING' || status === 'CONFIRMED' || status === 'CANCELLED' || status === 'DECLINED') {
@@ -42,12 +53,38 @@ function bookingStatusColor(status: BookingStatus): string {
   return '#6AC2B8';
 }
 
+function bookingStatusLabel(status: BookingStatus): string {
+  if (status === 'PENDING') return 'Venter';
+  if (status === 'CONFIRMED') return 'Godkjent';
+  if (status === 'CANCELLED') return 'Kansellert';
+  return 'Avvist';
+}
+
 const ItemDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const api = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem('jwt') || '';
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const currentUsername = useMemo(() => {
+    if (!token) return '';
+    try {
+      const decoded = jwtDecode<JwtClaims>(token);
+      return decoded.sub || decoded.username || decoded.preferred_username || '';
+    } catch {
+      return '';
+    }
+  }, [token]);
 
   // Try to get item from Link-state, otherwise fetch it
   const initialItem = (location.state as { item?: Item })?.item;
@@ -75,7 +112,7 @@ const ItemDetail: React.FC = () => {
         setItemLoading(false);
       }
     })();
-  }, [id, item]);
+  }, [api, id, item, navigate, token]);
 
   // availability + bookings
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -86,6 +123,7 @@ const ItemDetail: React.FC = () => {
   const [endDate, setEndDate] = useState<string>('');
   const [endTime, setEndTime] = useState<string>('');
   const [bookingNotice, setBookingNotice] = useState<string>('');
+  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -109,10 +147,29 @@ const ItemDetail: React.FC = () => {
     })();
   }, [api, id, token]);
 
+  const selectedBooking = useMemo(
+    () => (selectedBookingId == null ? null : bookings.find((booking) => booking.id === selectedBookingId) || null),
+    [bookings, selectedBookingId]
+  );
+
+  useEffect(() => {
+    if (selectedBookingId == null) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedBookingId(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [selectedBookingId]);
+
   if (itemLoading) return <p className="itemDetailState">Laster produkt...</p>;
   if (!item) return <p className="itemDetailState">Produkt ikke funnet.</p>;
   if (loading) return <p className="itemDetailState">Laster tilgjengelighet...</p>;
+
   const imageSrc = resolveItemImageUrl(api, item.imageUrl) || `https://picsum.photos/seed/${item.id}/800/300`;
+  const isOwner =
+    Boolean(item.username) &&
+    Boolean(currentUsername) &&
+    item.username.toLowerCase() === currentUsername.toLowerCase();
 
   const pad = (n: number) => String(n).padStart(2, "0");
   const toDateInput = (d: Date) =>
@@ -142,22 +199,26 @@ const ItemDetail: React.FC = () => {
   };
 
   const blockEvents: EventInput[] = slots.map(s => ({
-    id:    `block-${s.id}`,
+    id: `block-${s.id}`,
     title: 'Ikke ledig',
     start: s.startTime,
-    end:   s.endTime,
+    end: s.endTime,
     color: '#e25858'
   }));
+
   const bookingEvents: EventInput[] = bookings.map(b => {
     const status = normalizeBookingStatus(b.status);
-    return ({
-    id:    `booking-${b.id}`,
-    title: status,
-    start: b.startTime,
-    end:   b.endTime,
-    color: bookingStatusColor(status)
+    return {
+      id: `booking-${b.id}`,
+      title: isOwner && b.username
+        ? `${b.username} (${bookingStatusLabel(status)})`
+        : bookingStatusLabel(status),
+      start: b.startTime,
+      end: b.endTime,
+      color: bookingStatusColor(status)
+    };
   });
-  });
+
   const allEvents = [...blockEvents, ...bookingEvents];
 
   const handleAddBooking = async () => {
@@ -189,10 +250,26 @@ const ItemDetail: React.FC = () => {
     }
   };
 
-  const handleBlockClick = async (clickInfo: EventClickArg) => {
-    if(!clickInfo.event.id.startsWith('block-'))return
+  const handleEventClick = async (clickInfo: EventClickArg) => {
+    if (clickInfo.event.id.startsWith('booking-')) {
+      const clickedBookingId = clickInfo.event.id.replace('booking-', '');
+      const parsedBookingId = Number.parseInt(clickedBookingId, 10);
+      if (!Number.isFinite(parsedBookingId)) return;
+
+      const booking = bookings.find((entry) => entry.id === parsedBookingId);
+      if (!booking) {
+        navigate(`/items/${id}/bookings/${parsedBookingId}`);
+        return;
+      }
+      setSelectedBookingId(parsedBookingId);
+      return;
+    }
+
+    if (!clickInfo.event.id.startsWith('block-')) return;
+    if (!isOwner) return;
+
     const blockId = clickInfo.event.id.replace('block-', '');
-    if (!confirm(`Slett ${clickInfo.event.startStr} — ${clickInfo.event.endStr}?`)) return;
+    if (!window.confirm(`Slett ${clickInfo.event.startStr} - ${clickInfo.event.endStr}?`)) return;
     const res = await fetch(`${api}/api/items/${id}/unavailability/${blockId}`, {
       method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
     });
@@ -204,6 +281,15 @@ const ItemDetail: React.FC = () => {
       alert('Kunne ikke slette: ' + errMsg);
     }
   };
+
+  const formatDateTime = (iso: string) =>
+    new Intl.DateTimeFormat('nb-NO', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(new Date(iso));
 
   return (
     <div className="itemDetailPage">
@@ -285,23 +371,113 @@ const ItemDetail: React.FC = () => {
           <div className="sectionTitle">Sjekk tilgjengelighet</div>
           <div className="calendarShell">
             <FullCalendar
+              key={isMobile ? 'mobile' : 'desktop'}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView="dayGridMonth"
-              headerToolbar={{
-                left: 'prev,next',
-                center: 'title',
-                right: 'today'
-              }}
-              dayHeaderFormat={{ weekday: "narrow" }}
+              initialView={isMobile ? 'dayGridWeek' : 'dayGridMonth'}
+              headerToolbar={isMobile
+                ? {
+                    left: 'prev,next',
+                    center: 'title',
+                    right: 'today'
+                  }
+                : {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: ''
+                  }}
+              buttonText={{ today: 'I dag' }}
+              dayHeaderFormat={{ weekday: isMobile ? 'short' : 'narrow' }}
               events={allEvents}
               selectable={false}
-              eventClick={handleBlockClick}
+              eventClick={handleEventClick}
+              dayMaxEvents={isMobile ? 2 : true}
+              eventTimeFormat={{
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }}
               allDaySlot={false}
               height="auto"
             />
           </div>
+          <p className="calendarHint">Trykk pa en booking i kalenderen for a se detaljer i popup.</p>
+          <div className="calendarLegend">
+            <span className="calendarLegendItem">
+              <i className="calendarLegendDot calendarLegendDot--pending" />
+              Venter
+            </span>
+            <span className="calendarLegendItem">
+              <i className="calendarLegendDot calendarLegendDot--confirmed" />
+              Godkjent
+            </span>
+            <span className="calendarLegendItem">
+              <i className="calendarLegendDot calendarLegendDot--declined" />
+              Avvist
+            </span>
+            <span className="calendarLegendItem">
+              <i className="calendarLegendDot calendarLegendDot--cancelled" />
+              Kansellert
+            </span>
+          </div>
         </section>
       </main>
+      {selectedBooking ? (
+        <div
+          className="calendarModalBackdrop"
+          onClick={() => setSelectedBookingId(null)}
+        >
+          <section
+            className="calendarModal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Bookingdetaljer"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="calendarModalHeader">
+              <h3 className="calendarModalTitle">Bookingdetaljer</h3>
+              <button
+                type="button"
+                className="calendarModalClose"
+                onClick={() => setSelectedBookingId(null)}
+              >
+                Lukk
+              </button>
+            </div>
+            <div className="calendarModalItem">{item.name}</div>
+            <div className="calendarModalRows">
+              <div className="calendarModalRow">
+                <span className="calendarModalLabel">Status</span>
+                <span className={`calendarModalStatus calendarModalStatus--${normalizeBookingStatus(selectedBooking.status).toLowerCase()}`}>
+                  {bookingStatusLabel(normalizeBookingStatus(selectedBooking.status))}
+                </span>
+              </div>
+              <div className="calendarModalRow">
+                <span className="calendarModalLabel">Start</span>
+                <span className="calendarModalValue">{formatDateTime(selectedBooking.startTime)}</span>
+              </div>
+              <div className="calendarModalRow">
+                <span className="calendarModalLabel">Slutt</span>
+                <span className="calendarModalValue">{formatDateTime(selectedBooking.endTime)}</span>
+              </div>
+              {isOwner && selectedBooking.username ? (
+                <div className="calendarModalRow">
+                  <span className="calendarModalLabel">Booket av</span>
+                  <span className="calendarModalValue">{selectedBooking.username}</span>
+                </div>
+              ) : null}
+            </div>
+            <div className="calendarModalActions">
+              <button
+                type="button"
+                className="loanGhostBtn calendarModalAction"
+                onClick={() => navigate(`/items/${id}/bookings/${selectedBooking.id}`)}
+              >
+                Apne fullside
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -114,3 +114,58 @@
   justify-content: center;
   text-decoration: none;
 }
+
+.bookingEditPanel {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.16);
+  display: grid;
+  gap: 10px;
+}
+
+.bookingEditTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.88);
+}
+
+.bookingEditGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.bookingEditField {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.68);
+}
+
+.bookingEditField input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.28);
+  color: rgba(255,255,255,0.92);
+  font-size: 14px;
+}
+
+.bookingEditField input:focus {
+  outline: none;
+  border-color: rgba(125, 211, 252, 0.55);
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.16);
+}
+
+.bookingSaveBtn {
+  width: 100%;
+}
+
+@media (min-width: 700px) {
+  .bookingEditGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

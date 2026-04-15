@@ -1,6 +1,6 @@
 // src/components/EventDetail.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import RsvpForm from "./RsvpForm";
 import "../style/EventDetail.css";
@@ -37,6 +37,17 @@ interface EventUpdateDto {
   endTime: string;
 }
 
+type JwtClaims = {
+  sub?: string;
+  username?: string;
+  preferred_username?: string;
+};
+
+type MeDto = {
+  id?: number;
+  username?: string;
+};
+
 function toLocalDateTimeInput(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) {
@@ -58,16 +69,24 @@ function formatDateTime(iso: string) {
 
 const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const rawToken = localStorage.getItem("jwt") ?? "";
   const currentUser = useMemo(() => {
     try {
-      return (jwtDecode<{ sub: string }>(rawToken).sub || "").toLowerCase();
+      const decoded = jwtDecode<JwtClaims>(rawToken);
+      const identity =
+        decoded.sub ||
+        decoded.username ||
+        decoded.preferred_username ||
+        "";
+      return identity.toLowerCase();
     } catch {
       return "";
     }
   }, [rawToken]);
+  const [currentUserFromApi, setCurrentUserFromApi] = useState("");
 
   const [event, setEvent] = useState<EventDetailDto | null>(null);
   const [attendees, setAttendees] = useState<AttendanceDto[]>([]);
@@ -83,6 +102,10 @@ const EventDetail: React.FC = () => {
   const [editEndTime, setEditEndTime] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const forceOpenEdit = useMemo(
+    () => new URLSearchParams(location.search).get("edit") === "1",
+    [location.search]
+  );
 
   const fetchEventDetail = useCallback(async () => {
     const res = await fetch(`${apiBaseUrl}/api/events/${id}`, {
@@ -124,6 +147,45 @@ const EventDetail: React.FC = () => {
     };
   }, [fetchEventDetail]);
 
+  useEffect(() => {
+    let alive = true;
+    if (!rawToken) return;
+
+    (async () => {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/users/me`, {
+          headers: {
+            Authorization: `Bearer ${rawToken}`,
+          },
+        });
+        if (!res.ok) return;
+        const me = (await res.json()) as MeDto;
+        if (!alive) return;
+        setCurrentUserFromApi((me.username || "").toLowerCase());
+      } catch {
+        // Keep JWT-based fallback.
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [apiBaseUrl, rawToken]);
+
+  const resolvedCurrentUser = currentUserFromApi || currentUser;
+  const isOwner = (event?.createdBy || "").trim().toLowerCase() === resolvedCurrentUser;
+
+  useEffect(() => {
+    if (!forceOpenEdit || !event || isEditOpen) return;
+    setActionMessage(null);
+    setEditTitle(event.title);
+    setEditDescription(event.description);
+    setEditLocation(event.location || "");
+    setEditStartTime(toLocalDateTimeInput(event.startTime));
+    setEditEndTime(toLocalDateTimeInput(event.endTime));
+    setIsEditOpen(true);
+  }, [event, forceOpenEdit, isEditOpen]);
+
   const handleNewRsvp = (att: AttendanceDto) => {
     setAttendees((prev) => prev.filter((a) => a.userId !== att.userId).concat(att));
     setShowForm(false);
@@ -139,7 +201,6 @@ const EventDetail: React.FC = () => {
   const canList = attendees.filter((a) => a.status === "CAN");
   const invitedList = attendees.filter((a) => a.status === "INVITED");
   const cannotList = attendees.filter((a) => a.status === "CANNOT");
-  const isOwner = event.createdBy.toLowerCase() === currentUser;
 
   const openEdit = () => {
     setActionMessage(null);
@@ -257,20 +318,21 @@ const EventDetail: React.FC = () => {
           </div>
           <p className="eventDesc">{event.description}</p>
           <p className="eventCreator">Opprettet av: {event.createdBy}</p>
-          {isOwner ? (
-            <div className="eventOwnerActions">
-              <button type="button" className="eventOwnerBtn" onClick={openEdit}>
-                Rediger
-              </button>
-              <button
-                type="button"
-                className="eventOwnerBtn eventOwnerBtnDanger"
-                onClick={handleDelete}
-                disabled={deleting}
-              >
-                {deleting ? "Sletter..." : "Slett"}
-              </button>
-            </div>
+          <div className="eventOwnerActions">
+            <button type="button" className="loanGhostBtn eventOwnerActionBtn" onClick={openEdit}>
+              Rediger arrangement
+            </button>
+            <button
+              type="button"
+              className="loanDangerBtn eventOwnerActionBtn"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Sletter..." : "Slett arrangement"}
+            </button>
+          </div>
+          {!isOwner ? (
+            <div className="eventActionNotice">Kun oppretter kan lagre endringer eller slette.</div>
           ) : null}
           {actionMessage ? <div className="eventActionNotice">{actionMessage}</div> : null}
         </section>

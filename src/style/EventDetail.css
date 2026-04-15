@@ -70,6 +70,10 @@
   gap: 8px;
 }
 
+.eventOwnerActionBtn {
+  text-decoration: none;
+}
+
 .eventOwnerBtn {
   padding: 0.65rem 1rem;
   border-radius: 999px;

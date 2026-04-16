@@ -5,6 +5,7 @@ import BottomNav from "../components/BottomNav";
 import { PageHeader } from "../components/PageHeaderProps";
 import "../style/LoanPage.css";
 import "../style/BookingDetailPage.css";
+import { triggerNotificationsRefresh } from "../utils/notificationsRefresh";
 
 type Booking = {
   id: number;
@@ -268,6 +269,7 @@ const BookingDetailPage: React.FC = () => {
       const updated = (await res.json()) as Booking;
       setBooking((prev) => (prev ? { ...prev, ...updated } : updated));
       setMessage("success", "Booking godkjent.");
+      triggerNotificationsRefresh("booking:approve");
     } catch (err) {
       setMessage("error", err instanceof Error ? err.message : "Kunne ikke godkjenne booking.");
     } finally {
@@ -299,6 +301,7 @@ const BookingDetailPage: React.FC = () => {
       const updated = (await res.json()) as Booking;
       setBooking((prev) => (prev ? { ...prev, ...updated } : updated));
       setMessage("success", "Booking avvist.");
+      triggerNotificationsRefresh("booking:decline");
     } catch (err) {
       setMessage("error", err instanceof Error ? err.message : "Kunne ikke avvise booking.");
     } finally {
@@ -346,6 +349,7 @@ const BookingDetailPage: React.FC = () => {
       setEditStartTime(toDateTimeLocalInput(updated.startTime));
       setEditEndTime(toDateTimeLocalInput(updated.endTime));
       setMessage("success", "Booking oppdatert.");
+      triggerNotificationsRefresh("booking:update");
     } catch (err) {
       setMessage("error", err instanceof Error ? err.message : "Kunne ikke oppdatere booking.");
     } finally {
@@ -376,6 +380,7 @@ const BookingDetailPage: React.FC = () => {
 
       setBooking((prev) => (prev ? { ...prev, status: "CANCELLED" } : prev));
       setMessage("success", "Booking kansellert.");
+      triggerNotificationsRefresh("booking:cancel");
     } catch (err) {
       setMessage("error", err instanceof Error ? err.message : "Kunne ikke kansellere booking.");
     } finally {

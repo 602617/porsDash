@@ -1,7 +1,7 @@
 
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import HelloPage from './pages/HelloPage.tsx'
 import LoginPage from "../src/pages/LoginPage.tsx"
 import Dashboard from './pages/Dashboard.tsx'
@@ -18,6 +18,7 @@ import TestPage from './pages/testPage.tsx'
 import CreateEventForm from './components/CreateEvent.tsx'
 import ShoppingLists from './pages/ShoppingLists.tsx'
 import LoanPage from './pages/LoanPage.tsx'
+import LoansPage from './pages/LoansPage.tsx'
 import NotificationsPage from './pages/NotificationsPage.tsx'
 import GamePage from './pages/GamePage.tsx'
 import BookingDetailPage from './pages/BookingDetailPage.tsx'
@@ -49,6 +50,14 @@ function RedirectIfAuthed({ children }: { children: React.ReactElement }) {
     return <Navigate to={redirect || "/nydash"} replace />
   }
   return children
+}
+
+function LoanRoute() {
+  const { loanId } = useParams<{ loanId: string }>()
+  if (!loanId) {
+    return <Navigate to="/nydash" replace />
+  }
+  return <LoanPage loanId={loanId} baseUrl={import.meta.env.VITE_API_BASE_URL ?? ""} />
 }
 
 function RootEntry() {
@@ -115,7 +124,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path='/handlelister' element={<RequireAuth><ShoppingLists /></RequireAuth>} />
       <Route path='/nydash' element={<RequireAuth><NewDash /></RequireAuth>} />
       <Route path='/nyevent' element={<RequireAuth><CreateEventForm /></RequireAuth>} />
-      <Route path='/loan' element={<RequireAuth><LoanPage loanId={2} baseUrl={import.meta.env.VITE_API_BASE_URL ?? ""} /></RequireAuth>} />
+      <Route path='/loan' element={<RequireAuth><Navigate to="/loans" replace /></RequireAuth>} />
+      <Route path='/loans' element={<RequireAuth><LoansPage /></RequireAuth>} />
+      <Route path='/loans/:loanId' element={<RequireAuth><LoanRoute /></RequireAuth>} />
       <Route path='/notifications' element={<RequireAuth><NotificationsPage /></RequireAuth>} />
       <Route path='/testpage' element={<RequireAuth><TestPage /></RequireAuth>} />
       <Route path='/game' element={<RequireAuth><GamePage /></RequireAuth>} />

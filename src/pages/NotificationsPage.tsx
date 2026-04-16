@@ -9,7 +9,7 @@ import {
   syncPersistentBookingRequestsFromOwnerItems,
   type PersistentBookingRequest,
 } from "../utils/persistentBookingRequests";
-import { onNotificationsRefresh } from "../utils/notificationsRefresh";
+import { onNotificationsRefresh, triggerNotificationsRefresh } from "../utils/notificationsRefresh";
 import "../style/LoanPage.css";
 import "../style/NotificationsPage.css";
 
@@ -217,6 +217,7 @@ const NotificationsPage: React.FC = () => {
         const message = await res.text().catch(() => "");
         throw new Error(message || `Kunne ikke godkjenne (${res.status})`);
       }
+      triggerNotificationsRefresh("booking:approve");
       await refreshBookingRequests();
     } catch (e: unknown) {
       setBookingError(e instanceof Error ? e.message : "Kunne ikke godkjenne booking");
@@ -240,6 +241,7 @@ const NotificationsPage: React.FC = () => {
         const message = await res.text().catch(() => "");
         throw new Error(message || `Kunne ikke avvise (${res.status})`);
       }
+      triggerNotificationsRefresh("booking:decline");
       await refreshBookingRequests();
     } catch (e: unknown) {
       setBookingError(e instanceof Error ? e.message : "Kunne ikke avvise booking");

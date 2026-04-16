@@ -9,6 +9,7 @@ import { jwtDecode } from 'jwt-decode';
 import '../style/ItemDetail.css';
 import "../style/LoanPage.css";
 import { resolveItemImageUrl } from '../utils/itemImage';
+import { triggerNotificationsRefresh } from '../utils/notificationsRefresh';
 
 interface Slot {
   id: number;
@@ -243,6 +244,7 @@ const ItemDetail: React.FC = () => {
       setEndDate('');
       setEndTime('');
       setBookingNotice('Booking opprettet!');
+      triggerNotificationsRefresh('booking:create');
       window.setTimeout(() => setBookingNotice(''), 2600);
     } else {
       const errMsg = await res.text();

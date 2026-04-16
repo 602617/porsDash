@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../style/MyBookings.css";
 import { resolveItemImageUrl } from "../utils/itemImage";
+import { triggerNotificationsRefresh } from "../utils/notificationsRefresh";
 
 type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "DECLINED";
 
@@ -139,6 +140,7 @@ const MyBookings: React.FC = () => {
           b.id === booking.id ? { ...b, status: updatedStatus } : b
         )
       );
+      triggerNotificationsRefresh("booking:cancel");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunne ikke avbryte booking.");
     } finally {

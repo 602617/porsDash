@@ -63,7 +63,7 @@ const NewDash: FC = () => {
             <p>Mine produkter</p>
             <span className="dashIcon roleIcon" aria-hidden="true">M</span>
           </Link>
-          <Link to="/loan" className="dashboard-btn" style={{ animationDelay: "320ms" }}>
+          <Link to="/loans" className="dashboard-btn" style={{ animationDelay: "320ms" }}>
             <p>Lån</p>
             <span className="dashIcon roleIcon" aria-hidden="true">L</span>
           </Link>

@@ -24,8 +24,8 @@
   position: sticky;
   top: 10px;
   z-index: 20;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
   align-items: center;
   padding: 10px 12px;
   border: 1px solid var(--stroke);
@@ -35,14 +35,45 @@
   box-shadow: var(--shadow);
 }
 
+.miniLeft {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
 .miniTitle {
+  text-align: center;
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.2px;
   color: rgba(255,255,255,0.86);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0 8px;
 }
 
 .miniRight { display: flex; gap: 10px; align-items: center; }
+.miniRight { justify-content: flex-end; }
+
+.miniBackBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.92);
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.miniBackBtn:hover {
+  background: rgba(255,255,255,0.14);
+}
+
 .miniAction {
   width: 32px;
   height: 32px;

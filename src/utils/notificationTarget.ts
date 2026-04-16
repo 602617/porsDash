@@ -59,6 +59,7 @@ const isInternalPath = (path: string) =>
     "/dugnad",
     "/notifications",
     "/loan",
+    "/loans",
     "/game",
     "/handlelister",
     "/nydash",

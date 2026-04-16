@@ -1,6 +1,7 @@
 // src/components/EventList.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import "../style/EventList.css";
 import { triggerNotificationsRefresh } from "../utils/notificationsRefresh";
 
@@ -11,6 +12,16 @@ interface EventListDto {
   endTime: string;
   createdBy: string;
 }
+
+type JwtClaims = {
+  sub?: string;
+  username?: string;
+  preferred_username?: string;
+};
+
+type MeDto = {
+  username?: string;
+};
 
 function formatDateTime(iso: string) {
   const d = new Date(iso);
@@ -32,8 +43,18 @@ const EventList: React.FC = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [currentUserFromApi, setCurrentUserFromApi] = useState("");
   const api = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem("jwt") || "";
+  const currentUserFromJwt = useMemo(() => {
+    try {
+      const decoded = jwtDecode<JwtClaims>(token);
+      return (decoded.sub || decoded.username || decoded.preferred_username || "").toLowerCase();
+    } catch {
+      return "";
+    }
+  }, [token]);
+  const currentUser = (currentUserFromApi || currentUserFromJwt).trim().toLowerCase();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,6 +80,31 @@ const EventList: React.FC = () => {
         setLoading(false);
       }
     })();
+  }, [api, token]);
+
+  useEffect(() => {
+    let alive = true;
+    if (!token) return;
+
+    (async () => {
+      try {
+        const res = await fetch(`${api}/api/users/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) return;
+        const me = (await res.json()) as MeDto;
+        if (!alive) return;
+        setCurrentUserFromApi((me.username || "").toLowerCase());
+      } catch {
+        // Keep JWT fallback.
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, [api, token]);
 
   useEffect(() => {
@@ -125,6 +171,7 @@ const EventList: React.FC = () => {
         const { date: startDate, time: startTime } = formatDateTime(event.startTime);
         const { date: endDate, time: endTime } = formatDateTime(event.endTime);
         const menuOpen = openMenuId === event.id;
+        const isOwner = event.createdBy.trim().toLowerCase() === currentUser;
 
         return (
           <article
@@ -150,57 +197,59 @@ const EventList: React.FC = () => {
                 </div>
               </div>
 
-              <div className="eventMenuWrap">
-                <button
-                  type="button"
-                  className="eventMenuBtn"
-                  aria-label="Aapne handlinger"
-                  onClick={(clickEvent) => {
-                    clickEvent.stopPropagation();
-                    setActionError(null);
-                    setOpenMenuId(menuOpen ? null : event.id);
-                  }}
-                >
-                  ...
-                </button>
-                {menuOpen ? (
-                  <div
-                    className="eventMenu"
-                    onClick={(clickEvent) => clickEvent.stopPropagation()}
+              {isOwner ? (
+                <div className="eventMenuWrap">
+                  <button
+                    type="button"
+                    className="eventMenuBtn"
+                    aria-label="Aapne handlinger"
+                    onClick={(clickEvent) => {
+                      clickEvent.stopPropagation();
+                      setActionError(null);
+                      setOpenMenuId(menuOpen ? null : event.id);
+                    }}
                   >
-                    <button
-                      type="button"
-                      className="eventMenuItem"
-                      onClick={() => {
-                        setOpenMenuId(null);
-                        openEvent(event.id);
-                      }}
+                    ...
+                  </button>
+                  {menuOpen ? (
+                    <div
+                      className="eventMenu"
+                      onClick={(clickEvent) => clickEvent.stopPropagation()}
                     >
-                      Vis detaljer
-                    </button>
-                    <button
-                      type="button"
-                      className="eventMenuItem"
-                      onClick={() => {
-                        setOpenMenuId(null);
-                        navigate(`/events/${event.id}?edit=1`);
-                      }}
-                    >
-                      Rediger arrangement
-                    </button>
-                    <button
-                      type="button"
-                      className="eventMenuItem eventMenuItemDanger"
-                      onClick={() => {
-                        void handleDelete(event);
-                      }}
-                      disabled={deletingId === event.id}
-                    >
-                      {deletingId === event.id ? "Sletter..." : "Slett arrangement"}
-                    </button>
-                  </div>
-                ) : null}
-              </div>
+                      <button
+                        type="button"
+                        className="eventMenuItem"
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          openEvent(event.id);
+                        }}
+                      >
+                        Vis detaljer
+                      </button>
+                      <button
+                        type="button"
+                        className="eventMenuItem"
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          navigate(`/events/${event.id}?edit=1`);
+                        }}
+                      >
+                        Rediger arrangement
+                      </button>
+                      <button
+                        type="button"
+                        className="eventMenuItem eventMenuItemDanger"
+                        onClick={() => {
+                          void handleDelete(event);
+                        }}
+                        disabled={deletingId === event.id}
+                      >
+                        {deletingId === event.id ? "Sletter..." : "Slett arrangement"}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <p className="event-created">Opprettet av: {event.createdBy}</p>

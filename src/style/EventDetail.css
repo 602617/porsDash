@@ -28,6 +28,81 @@
   gap: 10px;
 }
 
+.eventHeroTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.eventOwnerMenuWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.eventOwnerMenuBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.eventOwnerMenuBtn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.eventOwnerMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 12;
+  min-width: 170px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(14, 18, 28, 0.96);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  display: grid;
+  gap: 4px;
+}
+
+.eventOwnerMenuItem {
+  border: 0;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.eventOwnerMenuItem:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.eventOwnerMenuItemDanger {
+  color: #fecaca;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.eventOwnerMenuItemDanger:hover {
+  background: rgba(248, 113, 113, 0.2);
+}
+
+.eventOwnerMenuItem:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
 .eventTitle {
   margin: 0;
   font-size: 1.5rem;
@@ -61,17 +136,6 @@
   margin: 0;
   font-size: 12px;
   color: var(--muted);
-}
-
-.eventOwnerActions {
-  margin-top: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.eventOwnerActionBtn {
-  text-decoration: none;
 }
 
 .eventOwnerBtn {

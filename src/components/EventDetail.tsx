@@ -1,5 +1,5 @@
 // src/components/EventDetail.tsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import RsvpForm from "./RsvpForm";
@@ -103,6 +103,8 @@ const EventDetail: React.FC = () => {
   const [editEndTime, setEditEndTime] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [ownerMenuOpen, setOwnerMenuOpen] = useState(false);
+  const ownerMenuRef = useRef<HTMLDivElement | null>(null);
   const forceOpenEdit = useMemo(
     () => new URLSearchParams(location.search).get("edit") === "1",
     [location.search]
@@ -175,6 +177,24 @@ const EventDetail: React.FC = () => {
 
   const resolvedCurrentUser = currentUserFromApi || currentUser;
   const isOwner = (event?.createdBy || "").trim().toLowerCase() === resolvedCurrentUser;
+
+  useEffect(() => {
+    if (!ownerMenuOpen) return;
+    const handleWindowClick = (event: MouseEvent) => {
+      if (ownerMenuRef.current && !ownerMenuRef.current.contains(event.target as Node)) {
+        setOwnerMenuOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOwnerMenuOpen(false);
+    };
+    window.addEventListener("mousedown", handleWindowClick);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("mousedown", handleWindowClick);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [ownerMenuOpen]);
 
   useEffect(() => {
     if (!forceOpenEdit || !event || isEditOpen) return;
@@ -264,6 +284,7 @@ const EventDetail: React.FC = () => {
       await fetchEventDetail();
       setIsEditOpen(false);
       setActionMessage("Arrangement oppdatert.");
+      setOwnerMenuOpen(false);
       triggerNotificationsRefresh("event:update");
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : "Kunne ikke oppdatere event.");
@@ -295,6 +316,7 @@ const EventDetail: React.FC = () => {
       }
 
       triggerNotificationsRefresh("event:delete");
+      setOwnerMenuOpen(false);
       navigate("/dugnad", { replace: true });
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : "Kunne ikke slette event.");
@@ -310,7 +332,49 @@ const EventDetail: React.FC = () => {
         <PageHeader title={event.title} showBack />
 
         <section className="section card eventHero">
-          <div className="chip">Arrangement</div>
+          <div className="eventHeroTop">
+            <div className="chip">Arrangement</div>
+            {isOwner ? (
+              <div className="eventOwnerMenuWrap" ref={ownerMenuRef}>
+                <button
+                  type="button"
+                  className="eventOwnerMenuBtn"
+                  aria-label="Aapne handlinger"
+                  onClick={() => {
+                    setActionMessage(null);
+                    setOwnerMenuOpen((prev) => !prev);
+                  }}
+                >
+                  ...
+                </button>
+                {ownerMenuOpen ? (
+                  <div className="eventOwnerMenu">
+                    <button
+                      type="button"
+                      className="eventOwnerMenuItem"
+                      onClick={() => {
+                        setOwnerMenuOpen(false);
+                        openEdit();
+                      }}
+                    >
+                      Rediger arrangement
+                    </button>
+                    <button
+                      type="button"
+                      className="eventOwnerMenuItem eventOwnerMenuItemDanger"
+                      onClick={() => {
+                        setOwnerMenuOpen(false);
+                        void handleDelete();
+                      }}
+                      disabled={deleting}
+                    >
+                      {deleting ? "Sletter..." : "Slett arrangement"}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
           <h1 className="eventTitle">{event.title}</h1>
           <div className="eventMetaRow">
             <span className="metaPill">
@@ -321,22 +385,6 @@ const EventDetail: React.FC = () => {
           </div>
           <p className="eventDesc">{event.description}</p>
           <p className="eventCreator">Opprettet av: {event.createdBy}</p>
-          <div className="eventOwnerActions">
-            <button type="button" className="loanGhostBtn eventOwnerActionBtn" onClick={openEdit}>
-              Rediger arrangement
-            </button>
-            <button
-              type="button"
-              className="loanDangerBtn eventOwnerActionBtn"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Sletter..." : "Slett arrangement"}
-            </button>
-          </div>
-          {!isOwner ? (
-            <div className="eventActionNotice">Kun oppretter kan lagre endringer eller slette.</div>
-          ) : null}
           {actionMessage ? <div className="eventActionNotice">{actionMessage}</div> : null}
         </section>
 

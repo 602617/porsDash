@@ -205,6 +205,31 @@ function pruneExpired(list: PersistentBookingRequest[], nowMs = Date.now()): Per
   return list.filter((entry) => !isExpired(entry.endTime, nowMs));
 }
 
+async function processWithConcurrency<T, TResult>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<TResult>
+): Promise<TResult[]> {
+  if (items.length === 0) return [];
+  const safeConcurrency = Math.max(1, Math.min(concurrency, items.length));
+  const results = new Array<TResult>(items.length);
+  let index = 0;
+
+  async function runWorker() {
+    while (true) {
+      const currentIndex = index;
+      index += 1;
+      if (currentIndex >= items.length) return;
+      results[currentIndex] = await worker(items[currentIndex]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: safeConcurrency }, () => runWorker())
+  );
+  return results;
+}
+
 async function fetchBookingDetails(
   apiBaseUrl: string,
   token: string,
@@ -371,45 +396,45 @@ export async function refreshPersistentBookingRequests(options: {
   }
 
   const base = readPersistentBookingRequests(token);
-  const next: Array<PersistentBookingRequest | null> = [];
-  for (const entry of base) {
-    try {
-      const details = await fetchBookingDetails(
-        apiBaseUrl,
-        token,
-        entry.itemId,
-        entry.bookingId,
-        true
-      );
-      if (details.missing) {
-        next.push(null);
-        continue;
+  const next = await processWithConcurrency(
+    base,
+    6,
+    async (entry): Promise<PersistentBookingRequest | null> => {
+      try {
+        const details = await fetchBookingDetails(
+          apiBaseUrl,
+          token,
+          entry.itemId,
+          entry.bookingId,
+          true
+        );
+        if (details.missing) {
+          return null;
+        }
+        const merged = mergeRequest(
+          {
+            itemId: entry.itemId,
+            bookingId: entry.bookingId,
+            message: entry.message,
+            notificationId: entry.notificationId,
+            url: entry.url,
+          },
+          details.booking,
+          details.item,
+          entry
+        );
+        if (isExpired(merged.endTime, Date.now())) {
+          return null;
+        }
+        return merged;
+      } catch {
+        if (isExpired(entry.endTime, Date.now())) {
+          return null;
+        }
+        return entry;
       }
-      const merged = mergeRequest(
-        {
-          itemId: entry.itemId,
-          bookingId: entry.bookingId,
-          message: entry.message,
-          notificationId: entry.notificationId,
-          url: entry.url,
-        },
-        details.booking,
-        details.item,
-        entry
-      );
-      if (isExpired(merged.endTime, Date.now())) {
-        next.push(null);
-        continue;
-      }
-      next.push(merged);
-    } catch {
-      if (isExpired(entry.endTime, Date.now())) {
-        next.push(null);
-        continue;
-      }
-      next.push(entry);
     }
-  }
+  );
 
   const cleaned = sortByEndDate(next.filter((entry): entry is PersistentBookingRequest => entry !== null));
   writeRawList(cleaned, token);
@@ -435,52 +460,61 @@ export async function syncPersistentBookingRequestsFromOwnerItems(options: {
       clearPersistentBookingRequests(token);
       return [];
     }
-    const text = await myProductsRes.text().catch(() => "");
-    throw new Error(text || `Kunne ikke hente produkter (${myProductsRes.status})`);
+    return readPersistentBookingRequests(token);
   }
 
   const products = (await myProductsRes.json()) as ItemDto[];
   const byKey = new Map(readPersistentBookingRequests(token).map((entry) => [entry.key, entry]));
 
   const productsList = Array.isArray(products) ? products : [];
-  for (const product of productsList) {
-    const itemId = Number(product.id);
-    if (!Number.isFinite(itemId)) continue;
+  const perItemResults = await processWithConcurrency(
+    productsList,
+    4,
+    async (product): Promise<{ itemId: number; product: ItemDto; bookings: BookingDto[] } | null> => {
+      const itemId = Number(product.id);
+      if (!Number.isFinite(itemId)) return null;
 
-    try {
-      const bookingsRes = await fetch(`${apiBaseUrl}/api/items/${itemId}/bookings`, { headers });
-      if (!bookingsRes.ok) continue;
+      try {
+        const bookingsRes = await fetch(`${apiBaseUrl}/api/items/${itemId}/bookings`, { headers });
+        if (!bookingsRes.ok) return null;
 
-      const bookings = (await bookingsRes.json()) as BookingDto[];
-      if (!Array.isArray(bookings)) continue;
-
-      bookings.forEach((booking) => {
-        const bookingId = Number(booking.id);
-        if (!Number.isFinite(bookingId)) return;
-
-        const key = bookingKey(itemId, bookingId);
-        const merged = mergeRequest(
-          {
-            itemId,
-            bookingId,
-            message: byKey.get(key)?.message || "Bookingforesporsel",
-            url: `/items/${itemId}/bookings/${bookingId}`,
-          },
-          booking,
-          product,
-          byKey.get(key)
-        );
-
-        if (isExpired(merged.endTime, Date.now())) {
-          byKey.delete(key);
-          return;
-        }
-        byKey.set(key, merged);
-      });
-    } catch {
-      // Ignore per-item booking sync errors so one failing item does not break the whole list.
+        const bookings = (await bookingsRes.json()) as BookingDto[];
+        if (!Array.isArray(bookings)) return null;
+        return { itemId, product, bookings };
+      } catch {
+        // Ignore per-item booking sync errors so one failing item does not break the whole list.
+        return null;
+      }
     }
-  }
+  );
+
+  perItemResults.forEach((result) => {
+    if (!result) return;
+    const { itemId, product, bookings } = result;
+    bookings.forEach((booking) => {
+      const bookingId = Number(booking.id);
+      if (!Number.isFinite(bookingId)) return;
+
+      const key = bookingKey(itemId, bookingId);
+      const merged = mergeRequest(
+        {
+          itemId,
+          bookingId,
+          message: byKey.get(key)?.message || "Bookingforesporsel",
+          url: `/items/${itemId}/bookings/${bookingId}`,
+        },
+        booking,
+        product,
+        byKey.get(key)
+      );
+
+      if (isExpired(merged.endTime, Date.now())) {
+        byKey.delete(key);
+        return;
+      }
+      byKey.set(key, merged);
+    });
+  });
 
   const cleaned = sortByEndDate(pruneExpired([...byKey.values()]));
   writeRawList(cleaned, token);

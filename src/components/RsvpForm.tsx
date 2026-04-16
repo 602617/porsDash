@@ -1,6 +1,7 @@
 // src/components/RsvpForm.tsx
 import React, { useState } from 'react';
 import '../style/RsvpForm.css'
+import { triggerNotificationsRefresh } from '../utils/notificationsRefresh';
 interface AttendanceRequest {
   status: 'CAN' | 'CANNOT';
   comment?: string;
@@ -53,6 +54,7 @@ const RsvpForm: React.FC<RsvpFormProps> = ({ eventId, onRsvpSuccess }) => {
       const saved: AttendanceDto = await res.json();
       onRsvpSuccess(saved);
       setComment('');  // clear comment
+      triggerNotificationsRefresh('event:rsvp');
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
       else                      setError('Ukjent feil ved påmelding');

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../style/EventList.css";
+import { triggerNotificationsRefresh } from "../utils/notificationsRefresh";
 
 interface EventListDto {
   id: number;
@@ -103,6 +104,7 @@ const EventList: React.FC = () => {
 
       setEvents((prev) => prev.filter((entry) => entry.id !== event.id));
       setOpenMenuId(null);
+      triggerNotificationsRefresh("event:delete");
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Kunne ikke slette arrangement.");
     } finally {

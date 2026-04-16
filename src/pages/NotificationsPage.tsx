@@ -9,6 +9,7 @@ import {
   syncPersistentBookingRequestsFromOwnerItems,
   type PersistentBookingRequest,
 } from "../utils/persistentBookingRequests";
+import { onNotificationsRefresh } from "../utils/notificationsRefresh";
 import "../style/LoanPage.css";
 import "../style/NotificationsPage.css";
 
@@ -64,15 +65,16 @@ const NotificationsPage: React.FC = () => {
       notifications,
     });
     const refreshed = await refreshPersistentBookingRequests({ apiBaseUrl, token });
-    if (!includeOwnerSync) {
-      if (refreshed.length > 0) return refreshed;
-      return seeded;
-    }
+    const baseline = refreshed.length > 0 ? refreshed : seeded;
+    if (!includeOwnerSync) return baseline;
 
-    const synced = await syncPersistentBookingRequestsFromOwnerItems({ apiBaseUrl, token });
-    if (synced.length > 0) return synced;
-    if (refreshed.length > 0) return refreshed;
-    return seeded;
+    try {
+      const synced = await syncPersistentBookingRequestsFromOwnerItems({ apiBaseUrl, token });
+      if (synced.length > 0) return synced;
+    } catch {
+      // Keep baseline results when owner-sync fails.
+    }
+    return baseline;
   };
 
   useEffect(() => {
@@ -108,11 +110,24 @@ const NotificationsPage: React.FC = () => {
 
       try {
         const nextBookingRequests = await fetchBookingRequests(unreadNotifications, {
-          includeOwnerSync: showLoading,
+          includeOwnerSync: false,
         });
         if (!alive) return;
         setBookingRequests(nextBookingRequests);
         setBookingError(null);
+
+        if (showLoading) {
+          void syncPersistentBookingRequestsFromOwnerItems({ apiBaseUrl, token })
+            .then((synced) => {
+              if (!alive) return;
+              if (synced.length > 0) {
+                setBookingRequests(synced);
+              }
+            })
+            .catch(() => {
+              // Keep baseline results on owner-sync failure.
+            });
+        }
       } catch (e: unknown) {
         if (!alive) return;
         setBookingError(e instanceof Error ? e.message : "Kunne ikke hente bookingforesporsler");
@@ -123,6 +138,10 @@ const NotificationsPage: React.FC = () => {
     };
 
     void loadPageData(true);
+    const unsubscribeRefresh = onNotificationsRefresh(() => {
+      if (document.hidden) return;
+      void loadPageData(false);
+    });
     const pollId = window.setInterval(() => {
       if (document.hidden) return;
       void loadPageData(false);
@@ -130,6 +149,7 @@ const NotificationsPage: React.FC = () => {
 
     return () => {
       alive = false;
+      unsubscribeRefresh();
       window.clearInterval(pollId);
     };
   }, [apiBaseUrl, token]);
@@ -170,9 +190,16 @@ const NotificationsPage: React.FC = () => {
   const refreshBookingRequests = async () => {
     const unreadNotifications = await fetchUnreadNotifications().catch(() => notes);
     const nextBookingRequests = await fetchBookingRequests(unreadNotifications, {
-      includeOwnerSync: true,
+      includeOwnerSync: false,
     });
     setBookingRequests(nextBookingRequests);
+    void syncPersistentBookingRequestsFromOwnerItems({ apiBaseUrl, token })
+      .then((synced) => {
+        if (synced.length > 0) setBookingRequests(synced);
+      })
+      .catch(() => {
+        // Keep baseline results on owner-sync failure.
+      });
   };
 
   const handleApprove = async (entry: PersistentBookingRequest) => {

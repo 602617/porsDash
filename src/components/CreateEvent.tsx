@@ -5,6 +5,7 @@ import { jwtDecode } from "jwt-decode";
 import { PageHeader } from "./PageHeaderProps";
 import "../style/CreateEvent.css";
 import "../style/LoanPage.css";
+import { triggerNotificationsRefresh } from "../utils/notificationsRefresh";
 
 interface EventDto {
   title: string;
@@ -153,6 +154,7 @@ const CreateEventForm: React.FC = () => {
         throw new Error(msg || `HTTP ${res.status}`);
       }
       const created: { id: number } = await res.json();
+      triggerNotificationsRefresh("event:create");
       navigate(`/events/${created.id}`);
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);

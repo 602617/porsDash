@@ -8,6 +8,7 @@ import "../style/LoanPage.css";
 import { subscribeUser } from "./usePushNotifications";
 import { PageHeader } from "./PageHeaderProps";
 import BottomNav from "./BottomNav";
+import { triggerNotificationsRefresh } from "../utils/notificationsRefresh";
 
 interface AttendanceDto {
   userId: number;
@@ -263,6 +264,7 @@ const EventDetail: React.FC = () => {
       await fetchEventDetail();
       setIsEditOpen(false);
       setActionMessage("Arrangement oppdatert.");
+      triggerNotificationsRefresh("event:update");
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : "Kunne ikke oppdatere event.");
     } finally {
@@ -292,6 +294,7 @@ const EventDetail: React.FC = () => {
         throw new Error(msg || `Kunne ikke slette event (${res.status})`);
       }
 
+      triggerNotificationsRefresh("event:delete");
       navigate("/dugnad", { replace: true });
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : "Kunne ikke slette event.");

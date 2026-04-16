@@ -1,5 +1,5 @@
 // src/components/Topbar.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../style/TopBar.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { unsubscribeUser } from './usePushNotifications';
@@ -9,6 +9,7 @@ import {
   clearAllPersistentBookingRequests,
   seedPersistentBookingRequestsFromNotifications,
 } from '../utils/persistentBookingRequests';
+import { onNotificationsRefresh } from '../utils/notificationsRefresh';
 
 interface NotificationDto {
   id: number;
@@ -25,27 +26,39 @@ const Topbar: React.FC = () => {
   const rawToken = localStorage.getItem('jwt') || '';
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const fetchUnreadNotifications = useCallback(async () => {
+    if (!rawToken) {
+      setNotes([]);
+      return;
+    }
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/notifications`, {
+        headers: { Authorization: `Bearer ${rawToken}` }
+      });
+      if (!res.ok) {
+        throw new Error(`Could not load notifications (${res.status})`);
+      }
+      const data = (await res.json()) as NotificationDto[];
+      setNotes(Array.isArray(data) ? data : []);
+      void seedPersistentBookingRequestsFromNotifications({
+        apiBaseUrl,
+        token: rawToken,
+        notifications: data,
+      }).catch(console.error);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [apiBaseUrl, rawToken]);
+
   // Fetch unread notifications on mount
   useEffect(() => {
-    fetch(`${apiBaseUrl}/api/notifications`, {
-      headers: { Authorization: `Bearer ${rawToken}` }
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error(`Could not load notifications (${res.status})`);
-        }
-        return (await res.json()) as NotificationDto[];
-      })
-      .then((data: NotificationDto[]) => {
-        setNotes(data);
-        void seedPersistentBookingRequestsFromNotifications({
-          apiBaseUrl,
-          token: rawToken,
-          notifications: data,
-        }).catch(console.error);
-      })
-      .catch(console.error);
-  }, [apiBaseUrl, rawToken]);
+    void fetchUnreadNotifications();
+  }, [fetchUnreadNotifications]);
+
+  // Re-fetch bell/feed notifications after event/booking mutations.
+  useEffect(() => onNotificationsRefresh(() => {
+    void fetchUnreadNotifications();
+  }), [fetchUnreadNotifications]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -59,7 +72,15 @@ const Topbar: React.FC = () => {
   }, []);
 
   const toggleMenu = () => setIsOpen(prev => !prev);
-  const toggleNotifications = () => setMenuOpen(prev => !prev);
+  const toggleNotifications = () => {
+    setMenuOpen(prev => {
+      const next = !prev;
+      if (next) {
+        void fetchUnreadNotifications();
+      }
+      return next;
+    });
+  };
 
   const handleLogout = async () => {
     try {

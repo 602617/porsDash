@@ -375,7 +375,7 @@ const ItemDetail: React.FC = () => {
             <FullCalendar
               key={isMobile ? 'mobile' : 'desktop'}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView={isMobile ? 'dayGridWeek' : 'dayGridMonth'}
+              initialView="dayGridMonth"
               headerToolbar={isMobile
                 ? {
                     left: 'prev,next',
@@ -393,6 +393,7 @@ const ItemDetail: React.FC = () => {
               selectable={false}
               eventClick={handleEventClick}
               dayMaxEvents={isMobile ? 2 : true}
+              expandRows={isMobile}
               eventTimeFormat={{
                 hour: '2-digit',
                 minute: '2-digit',

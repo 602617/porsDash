@@ -405,6 +405,57 @@
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@media (max-width: 639px) {
+  .calendarShell {
+    padding: 12px 8px;
+  }
+
+  .calendarShell .fc {
+    font-size: 13px;
+  }
+
+  .calendarShell .fc .fc-toolbar {
+    gap: 10px;
+    align-items: center;
+  }
+
+  .calendarShell .fc .fc-toolbar-title {
+    font-size: 17px;
+  }
+
+  .calendarShell .fc .fc-button {
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .calendarShell .fc .fc-col-header-cell-cushion {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.86);
+    letter-spacing: 0.6px;
+  }
+
+  .calendarShell .fc .fc-daygrid-day-frame {
+    min-height: 88px;
+  }
+
+  .calendarShell .fc .fc-daygrid-day-number {
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .calendarShell .fc .fc-daygrid-day-events {
+    min-height: 46px;
+    margin-top: 4px;
+  }
+
+  .calendarShell .fc .fc-daygrid-event {
+    border-radius: 8px;
+    padding: 2px 4px;
+  }
+}
+
 @media (min-width: 640px) {
   .itemHeroImage {
     height: 220px;

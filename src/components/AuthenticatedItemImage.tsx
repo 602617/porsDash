@@ -28,6 +28,9 @@ function shouldFetchWithAuth(apiBaseUrl: string, resolvedUrl: string): boolean {
   }
 }
 
+const TRANSPARENT_PIXEL =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+
 const AuthenticatedItemImage: React.FC<AuthenticatedItemImageProps> = ({
   apiBaseUrl,
   imageUrl,
@@ -37,7 +40,7 @@ const AuthenticatedItemImage: React.FC<AuthenticatedItemImageProps> = ({
   onError,
   ...imgProps
 }) => {
-  const [src, setSrc] = useState<string>(fallbackSrc);
+  const [src, setSrc] = useState<string>(TRANSPARENT_PIXEL);
 
   useEffect(() => {
     const resolvedUrl = resolveItemImageUrl(apiBaseUrl, imageUrl, cacheBust);
@@ -56,6 +59,8 @@ const AuthenticatedItemImage: React.FC<AuthenticatedItemImageProps> = ({
       setSrc(resolvedUrl);
       return;
     }
+
+    setSrc(TRANSPARENT_PIXEL);
 
     const controller = new AbortController();
     let active = true;

@@ -4,6 +4,7 @@ import { jwtDecode } from "jwt-decode";
 import BottomNav from "../components/BottomNav";
 import { PageHeader } from "../components/PageHeaderProps";
 import { triggerNotificationsRefresh } from "../utils/notificationsRefresh";
+import { fetchFriends } from "../utils/friendships";
 import { readStoredJwt } from "../utils/jwtToken";
 import "../style/ProfilePage.css";
 import "../style/LoanPage.css";
@@ -28,6 +29,7 @@ type LoanCard = {
 };
 
 type UserCandidate = {
+  userId?: number;
   username: string;
 };
 
@@ -74,6 +76,25 @@ function formatNok(amount: number): string {
     currency: "NOK",
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+async function extractResponseMessage(response: Response, fallback: string): Promise<string> {
+  const text = (await response.text().catch(() => "")).trim();
+  if (!text) return fallback;
+
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (isRecord(parsed)) {
+      const message = toCleanString(parsed.message);
+      const error = toCleanString(parsed.error);
+      if (message) return message;
+      if (error) return error;
+    }
+  } catch {
+    // Fall back to plain text.
+  }
+
+  return text || fallback;
 }
 
 function normalizeLoan(raw: unknown): LoanCard | null {
@@ -142,25 +163,6 @@ function mergeLoanWithDetail(baseLoan: LoanCard, detailRaw: unknown): LoanCard {
   };
 }
 
-function normalizeUsers(raw: unknown): UserCandidate[] {
-  if (!Array.isArray(raw)) return [];
-
-  const users: UserCandidate[] = [];
-  const seen = new Set<string>();
-
-  for (const entry of raw) {
-    if (!isRecord(entry)) continue;
-    const username = toCleanString(entry.username);
-    if (!username) continue;
-    const key = username.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    users.push({ username });
-  }
-
-  return users;
-}
-
 function otherPartyFor(loan: LoanCard, currentUsername: string): string {
   const current = currentUsername.trim().toLowerCase();
   const borrower = loan.borrowerUsername.trim().toLowerCase();
@@ -206,6 +208,7 @@ const LoansPage: React.FC = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [otherUserQuery, setOtherUserQuery] = useState("");
   const [otherUser, setOtherUser] = useState<UserCandidate | null>(null);
+  const [friendCandidates, setFriendCandidates] = useState<UserCandidate[]>([]);
   const [searchResults, setSearchResults] = useState<UserCandidate[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -236,8 +239,7 @@ const LoansPage: React.FC = () => {
       });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || `Kunne ikke hente lån (${res.status})`);
+        throw new Error(await extractResponseMessage(res, `Kunne ikke hente lån (${res.status})`));
       }
 
       const payload = (await res.json()) as unknown;
@@ -300,72 +302,69 @@ const LoansPage: React.FC = () => {
   useEffect(() => {
     if (!createOpen) return;
 
-    const query = otherUserQuery.trim();
-    if (query.length < 2) {
+    if (!token) {
+      setFriendCandidates([]);
       setSearchResults([]);
-      setSearchError(null);
+      setSearchError("Ikke innlogget.");
       setSearchLoading(false);
       return;
     }
 
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(async () => {
-      setSearchLoading(true);
-      setSearchError(null);
+    let alive = true;
+    setSearchLoading(true);
+    setSearchError(null);
 
+    void (async () => {
       try {
-        const lowered = query.toLowerCase();
-        let users: UserCandidate[] = [];
+        const friends = await fetchFriends(apiBaseUrl, token);
+        if (!alive) return;
 
-        const searchRes = await fetch(
-          `${apiBaseUrl}/api/users/search?q=${encodeURIComponent(query)}`,
-          { headers: authHeaders, signal: controller.signal }
-        );
-
-        if (searchRes.ok) {
-          users = normalizeUsers((await searchRes.json()) as unknown);
-        } else if (searchRes.status === 404 || searchRes.status === 405) {
-          const allUsersRes = await fetch(`${apiBaseUrl}/api/users`, {
-            headers: authHeaders,
-            signal: controller.signal,
-          });
-          if (!allUsersRes.ok) {
-            const text = await allUsersRes.text().catch(() => "");
-            throw new Error(text || `Kunne ikke hente brukere (${allUsersRes.status})`);
-          }
-          users = normalizeUsers((await allUsersRes.json()) as unknown);
-        } else {
-          const text = await searchRes.text().catch(() => "");
-          throw new Error(text || `Kunne ikke søke brukere (${searchRes.status})`);
-        }
-
-        const filtered = users
-          .filter((candidate) => candidate.username.toLowerCase().includes(lowered))
+        const nextCandidates = friends
+          .map((friend) => ({
+            userId: friend.userId,
+            username: friend.username,
+          }))
           .filter((candidate) => candidate.username.toLowerCase() !== currentUsername)
-          .slice(0, 10);
+          .sort((a, b) => a.username.localeCompare(b.username, "nb-NO"));
 
-        setSearchResults(filtered);
+        setFriendCandidates(nextCandidates);
       } catch (err: unknown) {
-        if (controller.signal.aborted) return;
-        setSearchError(err instanceof Error ? err.message : "Kunne ikke søke brukere.");
-        setSearchResults([]);
+        if (!alive) return;
+        setFriendCandidates([]);
+        setSearchError(err instanceof Error ? err.message : "Kunne ikke hente venner.");
       } finally {
-        if (!controller.signal.aborted) {
+        if (alive) {
           setSearchLoading(false);
         }
       }
-    }, 250);
+    })();
 
     return () => {
-      controller.abort();
-      window.clearTimeout(timeoutId);
+      alive = false;
     };
-  }, [apiBaseUrl, authHeaders, createOpen, currentUsername, otherUserQuery]);
+  }, [apiBaseUrl, createOpen, currentUsername, token]);
+
+  useEffect(() => {
+    if (!createOpen) return;
+
+    const query = otherUserQuery.trim().toLowerCase();
+    if (!query) {
+      setSearchResults(friendCandidates.slice(0, 10));
+      return;
+    }
+
+    const filtered = friendCandidates
+      .filter((candidate) => candidate.username.toLowerCase().includes(query))
+      .slice(0, 10);
+
+    setSearchResults(filtered);
+  }, [createOpen, friendCandidates, otherUserQuery]);
 
   const openCreateModal = () => {
     setCreateOpen(true);
     setOtherUserQuery("");
     setOtherUser(null);
+    setFriendCandidates([]);
     setSearchResults([]);
     setSearchError(null);
     setMyRole("LENDER");
@@ -389,7 +388,7 @@ const LoansPage: React.FC = () => {
       null;
     const selectedUser = otherUser || fallbackUser;
     if (!selectedUser) {
-      setCreateError("Velg en bruker som motpart.");
+      setCreateError("Velg en venn som motpart.");
       return;
     }
 
@@ -417,8 +416,9 @@ const LoansPage: React.FC = () => {
       });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || `Kunne ikke opprette lån (${res.status})`);
+        throw new Error(
+          await extractResponseMessage(res, `Kunne ikke opprette lån (${res.status})`)
+        );
       }
 
       let createdLoanId: number | null = null;
@@ -457,7 +457,11 @@ const LoansPage: React.FC = () => {
         <section className="section card loansCard">
           <div className="loansToolbar">
             <div className="sectionTitle loansSectionTitle">Dine lån</div>
-            <button type="button" className="loanPrimaryBtn loansCreateBtn" onClick={openCreateModal}>
+            <button
+              type="button"
+              className="loanPrimaryBtn loansCreateBtn"
+              onClick={openCreateModal}
+            >
               Opprett lån
             </button>
           </div>
@@ -479,9 +483,9 @@ const LoansPage: React.FC = () => {
                     role="button"
                     tabIndex={0}
                     onClick={() => navigate(`/loans/${loan.id}`)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
+                    onKeyDown={(keyboardEvent) => {
+                      if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
+                        keyboardEvent.preventDefault();
                         navigate(`/loans/${loan.id}`);
                       }
                     }}
@@ -530,7 +534,7 @@ const LoansPage: React.FC = () => {
 
             <form className="loanForm" onSubmit={handleCreateLoan}>
               <label className="formField">
-                <span>Motpart (brukernavn)</span>
+                <span>Motpart (venn)</span>
                 <input
                   type="text"
                   value={otherUserQuery}
@@ -539,14 +543,17 @@ const LoansPage: React.FC = () => {
                     setOtherUser(null);
                     setCreateError(null);
                   }}
-                  placeholder="Søk etter bruker"
+                  placeholder="Søk blant venner"
                   autoComplete="off"
                   required
                 />
               </label>
 
-              {searchLoading ? <p className="loansSearchState">Søker...</p> : null}
+              {searchLoading ? <p className="loansSearchState">Laster venner...</p> : null}
               {searchError ? <p className="loansSearchState loansError">{searchError}</p> : null}
+              {!searchLoading && !searchError && friendCandidates.length === 0 ? (
+                <p className="loansSearchState">Legg til venner for å opprette lån.</p>
+              ) : null}
               {!searchLoading && searchResults.length > 0 ? (
                 <div className="loansSearchList">
                   {searchResults.map((candidate) => {
@@ -554,7 +561,7 @@ const LoansPage: React.FC = () => {
                       otherUser?.username.toLowerCase() === candidate.username.toLowerCase();
                     return (
                       <button
-                        key={candidate.username}
+                        key={candidate.userId ?? candidate.username}
                         type="button"
                         className={`loansSearchItem${isSelected ? " active" : ""}`}
                         onClick={() => {

@@ -239,7 +239,7 @@ const CreateEventForm: React.FC = () => {
 
             <div className="inviteBlock">
               <div className="inviteHeader">
-                <span>Inviter brukere</span>
+                <span>Inviter venner</span>
                 <span className="inviteHint">{invitedUserIds.length} valgt</span>
               </div>
               {loadingUsers ? (
@@ -247,7 +247,7 @@ const CreateEventForm: React.FC = () => {
               ) : usersError ? (
                 <p className="inviteState inviteError">{usersError}</p>
               ) : users.length === 0 ? (
-                <p className="inviteState">Ingen brukere tilgjengelig.</p>
+                <p className="inviteState">Ingen venner tilgjengelig.</p>
               ) : (
                 <div className="inviteList">
                   {users.map((user) => {

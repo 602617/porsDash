@@ -8,7 +8,7 @@ import type { EventInput, EventClickArg } from '@fullcalendar/core';
 import { jwtDecode } from 'jwt-decode';
 import '../style/ItemDetail.css';
 import "../style/LoanPage.css";
-import { resolveItemImageUrl } from '../utils/itemImage';
+import AuthenticatedItemImage from './AuthenticatedItemImage';
 import { triggerNotificationsRefresh } from '../utils/notificationsRefresh';
 
 interface Slot {
@@ -166,7 +166,6 @@ const ItemDetail: React.FC = () => {
   if (!item) return <p className="itemDetailState">Produkt ikke funnet.</p>;
   if (loading) return <p className="itemDetailState">Laster tilgjengelighet...</p>;
 
-  const imageSrc = resolveItemImageUrl(api, item.imageUrl) || `https://picsum.photos/seed/${item.id}/800/300`;
   const isOwner =
     Boolean(item.username) &&
     Boolean(currentUsername) &&
@@ -298,8 +297,10 @@ const ItemDetail: React.FC = () => {
       <div className="bgGlow" />
       <main className="itemDetailMain">
         <section className="section card itemHeader">
-          <img
-            src={imageSrc}
+          <AuthenticatedItemImage
+            apiBaseUrl={api}
+            imageUrl={item.imageUrl || `/api/items/${item.id}/image`}
+            fallbackSrc={`https://picsum.photos/seed/${item.id}/800/300`}
             alt={item.name}
             className="itemHeroImage"
           />

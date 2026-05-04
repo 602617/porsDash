@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../style/MyBookings.css";
-import { resolveItemImageUrl } from "../utils/itemImage";
+import AuthenticatedItemImage from "./AuthenticatedItemImage";
 import { triggerNotificationsRefresh } from "../utils/notificationsRefresh";
 
 type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "DECLINED";
@@ -55,12 +55,8 @@ function bookingLabelFor(booking: BookingDto): string {
   return booking.bookingName || booking.name || "Booking";
 }
 
-function bookingImageFor(booking: BookingDto, apiBaseUrl: string): string {
-  const imageFromDto = booking.itemImageUrl || booking.imageUrl || booking.item?.imageUrl;
-  return (
-    resolveItemImageUrl(apiBaseUrl, imageFromDto || `/api/items/${booking.itemId}/image`) ||
-    `https://picsum.photos/seed/${booking.itemId}/480/240`
-  );
+function bookingImagePathFor(booking: BookingDto): string {
+  return booking.itemImageUrl || booking.imageUrl || booking.item?.imageUrl || `/api/items/${booking.itemId}/image`;
 }
 
 const MyBookings: React.FC = () => {
@@ -164,14 +160,12 @@ const MyBookings: React.FC = () => {
             const fallbackImage = `https://picsum.photos/seed/${booking.itemId}/480/240`;
             return (
               <div key={booking.id} className="myBookingCard">
-                <img
-                  src={bookingImageFor(booking, apiBaseUrl)}
+                <AuthenticatedItemImage
+                  apiBaseUrl={apiBaseUrl}
+                  imageUrl={bookingImagePathFor(booking)}
+                  fallbackSrc={fallbackImage}
                   alt={itemLabelFor(booking)}
                   className="myBookingThumb"
-                  onError={(event) => {
-                    if (event.currentTarget.src === fallbackImage) return;
-                    event.currentTarget.src = fallbackImage;
-                  }}
                 />
                 <div className="myBookingTop">
                   <h3 className="myBookingTitle">{itemLabelFor(booking)}</h3>

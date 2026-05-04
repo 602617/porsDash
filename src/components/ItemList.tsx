@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import "../style/ItemList.css"
-import { resolveItemImageUrl } from '../utils/itemImage';
+import AuthenticatedItemImage from './AuthenticatedItemImage';
 
 interface Item {
   id: number;
@@ -61,8 +61,10 @@ const ItemList: React.FC = () => {
         ) : (
           items.map((item) => (
             <div key={item.id} className="itemCard">
-              <img
-                src={resolveItemImageUrl(apiBaseUrl, item.imageUrl) || `https://picsum.photos/seed/${item.id}/400/200`}
+              <AuthenticatedItemImage
+                apiBaseUrl={apiBaseUrl}
+                imageUrl={item.imageUrl || `/api/items/${item.id}/image`}
+                fallbackSrc={`https://picsum.photos/seed/${item.id}/400/200`}
                 alt={item.name}
                 className="itemThumb"
               />

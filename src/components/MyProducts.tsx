@@ -4,7 +4,7 @@ import "../style/MyProducts.css";
 import EditItemForm from "./EditItemForm";
 import AddItemForm from "./AddItemForm";
 import ItemAvailabilityEditor from "./ItemAvailabilityEditor";
-import { resolveItemImageUrl } from "../utils/itemImage";
+import AuthenticatedItemImage from "./AuthenticatedItemImage";
 import { readStoredJwt } from "../utils/jwtToken";
 
 interface Item {
@@ -183,11 +183,11 @@ const MyProducts: React.FC = () => {
         <div className="myProductsGrid">
           {items.map((item) => (
             <div key={item.id} className="myProductCard">
-              <img
-                src={
-                  resolveItemImageUrl(apiBaseUrl, item.imageUrl, imageVersionById[item.id]) ||
-                  `https://picsum.photos/seed/${item.id}/400/200`
-                }
+              <AuthenticatedItemImage
+                apiBaseUrl={apiBaseUrl}
+                imageUrl={item.imageUrl || `/api/items/${item.id}/image`}
+                cacheBust={imageVersionById[item.id]}
+                fallbackSrc={`https://picsum.photos/seed/${item.id}/400/200`}
                 alt={item.name}
                 className="myProductThumb"
               />

@@ -94,25 +94,12 @@ const Topbar: React.FC = () => {
     }
   };
 
-  const markRead = async (id: number) => {
-    try {
-      await fetch(`${apiBaseUrl}/api/notifications/${id}/read`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${rawToken}` }
-      });
-      setNotes(n => n.filter(x => x.id !== id));
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const openNotification = async (note: NotificationDto) => {
     void seedPersistentBookingRequestsFromNotifications({
       apiBaseUrl,
       token: rawToken,
       notifications: [note],
     }).catch(console.error);
-    await markRead(note.id);
     setMenuOpen(false);
 
     const target = resolveNotificationTarget(note.url, apiBaseUrl);

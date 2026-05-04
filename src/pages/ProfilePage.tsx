@@ -11,10 +11,13 @@ import { unsubscribeUser } from "../components/usePushNotifications";
 import { readStoredJwt } from "../utils/jwtToken";
 import {
   type FriendshipDto,
+  type UserSearchResult,
   acceptFriendRequest,
   deleteFriendship,
   fetchFriends,
   fetchPendingFriendRequests,
+  searchUsers,
+  sendFriendRequest,
 } from "../utils/friendships";
 
 const ProfilePage: React.FC = () => {
@@ -28,6 +31,12 @@ const ProfilePage: React.FC = () => {
   const [friendsError, setFriendsError] = useState<string | null>(null);
   const [friendActionLoadingId, setFriendActionLoadingId] = useState<number | null>(null);
   const [friendActionMessage, setFriendActionMessage] = useState<string | null>(null);
+  const [friendQuery, setFriendQuery] = useState("");
+  const [friendSearchLoading, setFriendSearchLoading] = useState(false);
+  const [friendSearchError, setFriendSearchError] = useState<string | null>(null);
+  const [friendResults, setFriendResults] = useState<UserSearchResult[]>([]);
+  const [sendingRequestTo, setSendingRequestTo] = useState<number | null>(null);
+  const [friendSearchFeedback, setFriendSearchFeedback] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -96,6 +105,92 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     void loadFriendships();
   }, [loadFriendships]);
+
+  useEffect(() => {
+    const query = friendQuery.trim();
+    if (query.length < 2) {
+      setFriendResults([]);
+      setFriendSearchError(null);
+      setFriendSearchLoading(false);
+      return;
+    }
+
+    const token = readStoredJwt();
+    if (!token) {
+      setFriendResults([]);
+      setFriendSearchLoading(false);
+      setFriendSearchError("Ikke innlogget.");
+      return;
+    }
+
+    const excludedUsernames = new Set<string>();
+    if (user?.username) {
+      excludedUsernames.add(user.username.toLowerCase());
+    }
+    friends.forEach((friend) => excludedUsernames.add(friend.username.toLowerCase()));
+    pendingRequests.forEach((friend) => excludedUsernames.add(friend.username.toLowerCase()));
+
+    const controller = new AbortController();
+    const timerId = window.setTimeout(async () => {
+      setFriendSearchLoading(true);
+      setFriendSearchError(null);
+
+      try {
+        const users = await searchUsers(apiBaseUrl, token, query, controller.signal);
+        const lowered = query.toLowerCase();
+        const filtered = users
+          .filter((candidate) => candidate.username.toLowerCase().includes(lowered))
+          .filter((candidate) => !excludedUsernames.has(candidate.username.toLowerCase()))
+          .slice(0, 8);
+        setFriendResults(filtered);
+      } catch (err: unknown) {
+        if (controller.signal.aborted) return;
+        const message =
+          err instanceof Error ? err.message : "Kunne ikke søke etter brukere.";
+        setFriendSearchError(message);
+        setFriendResults([]);
+      } finally {
+        if (!controller.signal.aborted) {
+          setFriendSearchLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timerId);
+    };
+  }, [apiBaseUrl, friendQuery, friends, pendingRequests, user]);
+
+  const handleSendFriendRequest = async (candidate: UserSearchResult) => {
+    const token = readStoredJwt();
+    if (!token || sendingRequestTo != null) return;
+
+    setFriendSearchFeedback(null);
+    setFriendSearchError(null);
+    setSendingRequestTo(candidate.id);
+
+    try {
+      const response = await sendFriendRequest(apiBaseUrl, token, candidate.id);
+      const responseStatus = response?.status?.toUpperCase() || "PENDING";
+
+      if (responseStatus === "ACCEPTED") {
+        setFriendSearchFeedback(`${candidate.username} er nå lagt til som venn.`);
+        await loadFriendships();
+      } else {
+        setFriendSearchFeedback(`Venneforespørsel sendt til ${candidate.username}.`);
+      }
+
+      setFriendResults((prev) => prev.filter((entry) => entry.id !== candidate.id));
+      setFriendQuery("");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Kunne ikke sende venneforespørsel.";
+      setFriendSearchFeedback(message);
+    } finally {
+      setSendingRequestTo(null);
+    }
+  };
 
   const runFriendAction = async (
     friendshipId: number,
@@ -171,6 +266,57 @@ const ProfilePage: React.FC = () => {
             <p className="profileFriendsState profileFriendsError">{friendsError}</p>
           ) : (
             <>
+              <div className="profileFriendsSearch">
+                <div className="profileFriendsSubTitle">Finn brukere</div>
+                <label className="profileFriendSearchLabel" htmlFor="profile-friend-search">
+                  Søk etter brukere og send venneforespørsel
+                </label>
+                <input
+                  id="profile-friend-search"
+                  type="text"
+                  className="profileFriendSearchInput"
+                  value={friendQuery}
+                  onChange={(event) => {
+                    setFriendQuery(event.target.value);
+                    setFriendSearchFeedback(null);
+                  }}
+                  placeholder="Søk bruker"
+                  autoComplete="off"
+                />
+                {friendQuery.trim().length >= 2 || friendSearchLoading || friendSearchError ? (
+                  <div className="profileFriendSearchDropdown">
+                    {friendSearchLoading ? (
+                      <div className="profileFriendSearchState">Søker...</div>
+                    ) : friendSearchError ? (
+                      <div className="profileFriendSearchState profileFriendSearchStateError">
+                        {friendSearchError}
+                      </div>
+                    ) : friendResults.length === 0 ? (
+                      <div className="profileFriendSearchState">Ingen brukere funnet.</div>
+                    ) : (
+                      friendResults.map((candidate) => (
+                        <div key={candidate.id} className="profileFriendSearchRow">
+                          <span className="profileFriendSearchName">{candidate.username}</span>
+                          <button
+                            type="button"
+                            className="profileFriendBtn profileFriendBtnAccept"
+                            onClick={() => {
+                              void handleSendFriendRequest(candidate);
+                            }}
+                            disabled={sendingRequestTo !== null}
+                          >
+                            {sendingRequestTo === candidate.id ? "Sender..." : "Legg til"}
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : null}
+                {friendSearchFeedback ? (
+                  <div className="profileFriendsNotice">{friendSearchFeedback}</div>
+                ) : null}
+              </div>
+
               <div className="profileFriendsSummary">
                 <span>{friends.length} venner</span>
                 <span>{pendingRequests.length} foresporsler</span>

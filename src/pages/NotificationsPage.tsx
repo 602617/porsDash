@@ -176,8 +176,6 @@ const NotificationsPage: React.FC = () => {
     }).catch(() => {
       // Ignore persistence errors when opening a notification.
     });
-
-    await markRead(note.id);
     const target = resolveNotificationTarget(note.url, apiBaseUrl);
     if (!target) return;
     if (target.type === "external") {

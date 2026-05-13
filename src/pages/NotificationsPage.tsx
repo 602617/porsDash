@@ -3,13 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeaderProps";
 import BottomNav from "../components/BottomNav";
 import { resolveNotificationTarget } from "../utils/notificationTarget";
-import {
-  refreshPersistentBookingRequests,
-  seedPersistentBookingRequestsFromNotifications,
-  syncPersistentBookingRequestsFromOwnerItems,
-  type PersistentBookingRequest,
-} from "../utils/persistentBookingRequests";
 import { onNotificationsRefresh, triggerNotificationsRefresh } from "../utils/notificationsRefresh";
+import { readStoredJwt } from "../utils/jwtToken";
 import "../style/LoanPage.css";
 import "../style/NotificationsPage.css";
 
@@ -17,6 +12,20 @@ interface NotificationDto {
   id: number;
   message: string;
   url?: string | null;
+}
+
+type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "DECLINED";
+
+interface ActiveBookingRequestDto {
+  bookingId: number;
+  itemId: number;
+  itemName: string;
+  requesterUserId: number;
+  requesterUsername: string;
+  startTime: string;
+  endTime: string;
+  status: BookingStatus;
+  updatedAt: string;
 }
 
 function formatDateTime(iso: string): string {
@@ -34,7 +43,7 @@ function formatDateTime(iso: string): string {
 
 const NotificationsPage: React.FC = () => {
   const [notes, setNotes] = useState<NotificationDto[]>([]);
-  const [bookingRequests, setBookingRequests] = useState<PersistentBookingRequest[]>([]);
+  const [bookingRequests, setBookingRequests] = useState<ActiveBookingRequestDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,10 +51,11 @@ const NotificationsPage: React.FC = () => {
   const [approvingKey, setApprovingKey] = useState<string | null>(null);
   const [cancellingKey, setCancellingKey] = useState<string | null>(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  const token = localStorage.getItem("jwt") || "";
+  const token = readStoredJwt();
   const navigate = useNavigate();
 
   const fetchUnreadNotifications = async (): Promise<NotificationDto[]> => {
+    if (!apiBaseUrl || !token) return [];
     const res = await fetch(`${apiBaseUrl}/api/notifications`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -54,27 +64,17 @@ const NotificationsPage: React.FC = () => {
     return Array.isArray(data) ? data : [];
   };
 
-  const fetchBookingRequests = async (
-    notifications: NotificationDto[],
-    options?: { includeOwnerSync?: boolean }
-  ) => {
-    const includeOwnerSync = options?.includeOwnerSync ?? false;
-    const seeded = await seedPersistentBookingRequestsFromNotifications({
-      apiBaseUrl,
-      token,
-      notifications,
+  const fetchActiveBookingRequests = async (): Promise<ActiveBookingRequestDto[]> => {
+    if (!apiBaseUrl || !token) return [];
+    const res = await fetch(`${apiBaseUrl}/api/bookings/active-requests`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    const refreshed = await refreshPersistentBookingRequests({ apiBaseUrl, token });
-    const baseline = refreshed.length > 0 ? refreshed : seeded;
-    if (!includeOwnerSync) return baseline;
-
-    try {
-      const synced = await syncPersistentBookingRequestsFromOwnerItems({ apiBaseUrl, token });
-      if (synced.length > 0) return synced;
-    } catch {
-      // Keep baseline results when owner-sync fails.
+    if (!res.ok) {
+      const message = await res.text().catch(() => "");
+      throw new Error(message || `Kunne ikke hente bookingforesporsler (${res.status})`);
     }
-    return baseline;
+    const data = (await res.json()) as ActiveBookingRequestDto[];
+    return Array.isArray(data) ? data : [];
   };
 
   useEffect(() => {
@@ -89,50 +89,40 @@ const NotificationsPage: React.FC = () => {
         setBookingLoading(true);
       }
 
-      let unreadNotifications: NotificationDto[] = [];
       try {
-        unreadNotifications = await fetchUnreadNotifications();
+        const [notificationsResult, bookingRequestsResult] = await Promise.allSettled([
+          fetchUnreadNotifications(),
+          fetchActiveBookingRequests(),
+        ]);
+
         if (!alive) return;
-        setNotes(unreadNotifications);
-        setError(null);
-      } catch (e: unknown) {
-        if (!alive) return;
-        setError(e instanceof Error ? e.message : "Ukjent feil");
-        if (alive && showLoading) {
+
+        if (notificationsResult.status === "fulfilled") {
+          setNotes(notificationsResult.value);
+          setError(null);
+        } else {
+          setError(
+            notificationsResult.reason instanceof Error
+              ? notificationsResult.reason.message
+              : "Ukjent feil"
+          );
+        }
+
+        if (bookingRequestsResult.status === "fulfilled") {
+          setBookingRequests(bookingRequestsResult.value);
+          setBookingError(null);
+        } else {
+          setBookingError(
+            bookingRequestsResult.reason instanceof Error
+              ? bookingRequestsResult.reason.message
+              : "Kunne ikke hente bookingforesporsler"
+          );
+        }
+      } finally {
+        if (alive) {
           setLoading(false);
           setBookingLoading(false);
         }
-        inFlight = false;
-        return;
-      } finally {
-        if (alive && showLoading) setLoading(false);
-      }
-
-      try {
-        const nextBookingRequests = await fetchBookingRequests(unreadNotifications, {
-          includeOwnerSync: false,
-        });
-        if (!alive) return;
-        setBookingRequests(nextBookingRequests);
-        setBookingError(null);
-
-        if (showLoading) {
-          void syncPersistentBookingRequestsFromOwnerItems({ apiBaseUrl, token })
-            .then((synced) => {
-              if (!alive) return;
-              if (synced.length > 0) {
-                setBookingRequests(synced);
-              }
-            })
-            .catch(() => {
-              // Keep baseline results on owner-sync failure.
-            });
-        }
-      } catch (e: unknown) {
-        if (!alive) return;
-        setBookingError(e instanceof Error ? e.message : "Kunne ikke hente bookingforesporsler");
-      } finally {
-        if (alive && showLoading) setBookingLoading(false);
         inFlight = false;
       }
     };
@@ -167,15 +157,6 @@ const NotificationsPage: React.FC = () => {
   };
 
   const handleOpen = async (note: NotificationDto) => {
-    void seedPersistentBookingRequestsFromNotifications({
-      apiBaseUrl,
-      token,
-      notifications: [note],
-    }).then((updated) => {
-      setBookingRequests(updated);
-    }).catch(() => {
-      // Ignore persistence errors when opening a notification.
-    });
     const target = resolveNotificationTarget(note.url, apiBaseUrl);
     if (!target) return;
     if (target.type === "external") {
@@ -185,24 +166,12 @@ const NotificationsPage: React.FC = () => {
     navigate(target.to);
   };
 
-  const refreshBookingRequests = async () => {
-    const unreadNotifications = await fetchUnreadNotifications().catch(() => notes);
-    const nextBookingRequests = await fetchBookingRequests(unreadNotifications, {
-      includeOwnerSync: false,
-    });
-    setBookingRequests(nextBookingRequests);
-    void syncPersistentBookingRequestsFromOwnerItems({ apiBaseUrl, token })
-      .then((synced) => {
-        if (synced.length > 0) setBookingRequests(synced);
-      })
-      .catch(() => {
-        // Keep baseline results on owner-sync failure.
-      });
-  };
+  const bookingRequestKey = (entry: ActiveBookingRequestDto) => `${entry.itemId}:${entry.bookingId}`;
 
-  const handleApprove = async (entry: PersistentBookingRequest) => {
+  const handleApprove = async (entry: ActiveBookingRequestDto) => {
     setBookingError(null);
-    setApprovingKey(entry.key);
+    const entryKey = bookingRequestKey(entry);
+    setApprovingKey(entryKey);
     try {
       const res = await fetch(
         `${apiBaseUrl}/api/items/${entry.itemId}/bookings/${entry.bookingId}/approve`,
@@ -215,8 +184,14 @@ const NotificationsPage: React.FC = () => {
         const message = await res.text().catch(() => "");
         throw new Error(message || `Kunne ikke godkjenne (${res.status})`);
       }
+      setBookingRequests((prev) =>
+        prev.map((current) =>
+          bookingRequestKey(current) === entryKey
+            ? { ...current, status: "CONFIRMED", updatedAt: new Date().toISOString() }
+            : current
+        )
+      );
       triggerNotificationsRefresh("booking:approve");
-      await refreshBookingRequests();
     } catch (e: unknown) {
       setBookingError(e instanceof Error ? e.message : "Kunne ikke godkjenne booking");
     } finally {
@@ -224,12 +199,13 @@ const NotificationsPage: React.FC = () => {
     }
   };
 
-  const handleCancel = async (entry: PersistentBookingRequest) => {
+  const handleCancel = async (entry: ActiveBookingRequestDto) => {
     const accepted = window.confirm("Avvise denne bookingen?");
     if (!accepted) return;
 
     setBookingError(null);
-    setCancellingKey(entry.key);
+    const entryKey = bookingRequestKey(entry);
+    setCancellingKey(entryKey);
     try {
       const res = await fetch(`${apiBaseUrl}/api/items/${entry.itemId}/bookings/${entry.bookingId}/decline`, {
         method: "POST",
@@ -239,8 +215,10 @@ const NotificationsPage: React.FC = () => {
         const message = await res.text().catch(() => "");
         throw new Error(message || `Kunne ikke avvise (${res.status})`);
       }
+      setBookingRequests((prev) =>
+        prev.filter((current) => bookingRequestKey(current) !== entryKey)
+      );
       triggerNotificationsRefresh("booking:decline");
-      await refreshBookingRequests();
     } catch (e: unknown) {
       setBookingError(e instanceof Error ? e.message : "Kunne ikke avvise booking");
     } finally {
@@ -267,17 +245,17 @@ const NotificationsPage: React.FC = () => {
           ) : (
             <div className="persistentBookingList">
               {bookingRequests.map((entry) => {
-                const isApproving = approvingKey === entry.key;
-                const isCancelling = cancellingKey === entry.key;
+                const entryKey = bookingRequestKey(entry);
+                const isApproving = approvingKey === entryKey;
+                const isCancelling = cancellingKey === entryKey;
                 const isBusy = isApproving || isCancelling;
                 const statusClass = `persistentBookingStatus persistentBookingStatus--${entry.status.toLowerCase()}`;
                 return (
-                  <div key={entry.key} className="persistentBookingItem">
+                  <div key={entryKey} className="persistentBookingItem">
                     <div className="persistentBookingHeader">
                       <div className="persistentBookingTitle">{entry.itemName}</div>
                       <span className={statusClass}>{entry.status}</span>
                     </div>
-                    <p className="persistentBookingMessage">{entry.message}</p>
                     <div className="persistentBookingMeta">
                       {entry.requesterUsername
                         ? `Foresporsel fra ${entry.requesterUsername}`
@@ -285,6 +263,7 @@ const NotificationsPage: React.FC = () => {
                     </div>
                     <div className="persistentBookingMeta">Start: {formatDateTime(entry.startTime)}</div>
                     <div className="persistentBookingMeta">Slutt: {formatDateTime(entry.endTime)}</div>
+                    <div className="persistentBookingMeta">Oppdatert: {formatDateTime(entry.updatedAt)}</div>
                     <div className="persistentBookingActions">
                       <button
                         type="button"

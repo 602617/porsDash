@@ -5,11 +5,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { unsubscribeUser } from './usePushNotifications';
 import { Bell } from 'lucide-react';
 import { resolveNotificationTarget } from '../utils/notificationTarget';
-import {
-  clearAllPersistentBookingRequests,
-  seedPersistentBookingRequestsFromNotifications,
-} from '../utils/persistentBookingRequests';
 import { onNotificationsRefresh } from '../utils/notificationsRefresh';
+import { clearStoredJwt, readStoredJwt } from '../utils/jwtToken';
 
 interface NotificationDto {
   id: number;
@@ -23,7 +20,7 @@ const Topbar: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const navigate = useNavigate();
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  const rawToken = localStorage.getItem('jwt') || '';
+  const rawToken = readStoredJwt();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchUnreadNotifications = useCallback(async () => {
@@ -40,11 +37,6 @@ const Topbar: React.FC = () => {
       }
       const data = (await res.json()) as NotificationDto[];
       setNotes(Array.isArray(data) ? data : []);
-      void seedPersistentBookingRequestsFromNotifications({
-        apiBaseUrl,
-        token: rawToken,
-        notifications: data,
-      }).catch(console.error);
     } catch (error) {
       console.error(error);
     }
@@ -88,18 +80,12 @@ const Topbar: React.FC = () => {
     } catch (err) {
       console.warn('Push unsubscribe failed:', err);
     } finally {
-      clearAllPersistentBookingRequests();
-      localStorage.removeItem('jwt');
+      clearStoredJwt();
       navigate('/login');
     }
   };
 
   const openNotification = async (note: NotificationDto) => {
-    void seedPersistentBookingRequestsFromNotifications({
-      apiBaseUrl,
-      token: rawToken,
-      notifications: [note],
-    }).catch(console.error);
     setMenuOpen(false);
 
     const target = resolveNotificationTarget(note.url, apiBaseUrl);

@@ -8,7 +8,7 @@ import "../style/LoanPage.css";
 import BottomNav from "../components/BottomNav";
 import PushNotificationSettings from "../components/PushNotificationSettings";
 import { unsubscribeUser } from "../components/usePushNotifications";
-import { readStoredJwt } from "../utils/jwtToken";
+import { clearStoredJwt, readStoredJwt } from "../utils/jwtToken";
 import {
   type FriendshipDto,
   type UserSearchResult,
@@ -228,7 +228,7 @@ const ProfilePage: React.FC = () => {
     } catch (logoutError) {
       console.warn("Push unsubscribe failed:", logoutError);
     } finally {
-      localStorage.removeItem("jwt");
+      clearStoredJwt();
       navigate("/login");
     }
   };

@@ -1,9 +1,9 @@
 // src/pages/LoginPage.tsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useLocation, useNavigate } from "react-router-dom";
 import { subscribeUser } from "../components/usePushNotifications";
-import { storeJwt } from "../utils/jwtToken";
+import { consumeAuthLogoutReason, storeJwt } from "../utils/jwtToken";
 import "../style/LoginPage.css"; // Ensure you have this CSS file for styling
 
 
@@ -21,6 +21,13 @@ const LoginPage: React.FC = () => {
     if (!redirectParam.startsWith("/") || redirectParam.startsWith("//")) return "/nydash";
     return redirectParam;
   }, [location.search]);
+
+  useEffect(() => {
+    const logoutReason = consumeAuthLogoutReason();
+    if (logoutReason === "expired" || logoutReason === "invalid") {
+      setError("Session expired. Please log in again.");
+    }
+  }, []);
 
   const handleLogin: (e: React.FormEvent<HTMLFormElement>) => Promise<void>  = async (e) => {
     e.preventDefault();

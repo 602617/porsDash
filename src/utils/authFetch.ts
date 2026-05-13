@@ -1,3 +1,5 @@
+import { clearStoredJwt } from "./jwtToken";
+
 let interceptorInstalled = false;
 let redirectInProgress = false;
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
@@ -74,7 +76,7 @@ function handleUnauthorized(requestToken = "") {
   if (redirectInProgress) return;
   if (window.location.pathname === "/login") return;
 
-  localStorage.removeItem("jwt");
+  clearStoredJwt("expired");
   redirectInProgress = true;
   const currentPath = getCurrentPathWithQuery();
   const loginUrl = `/login?redirect=${encodeURIComponent(currentPath)}`;

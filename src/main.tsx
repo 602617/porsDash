@@ -23,6 +23,9 @@ import NotificationsPage from './pages/NotificationsPage.tsx'
 import GamePage from './pages/GamePage.tsx'
 import BookingDetailPage from './pages/BookingDetailPage.tsx'
 import MyBookingsPage from './pages/MyBookingsPage.tsx'
+import SportsfondetPage from './pages/SportsfondetPage.tsx'
+import TimeRegistrationPage from './pages/TimeRegistrationPage.tsx'
+import { isCurrentUserAdmin } from './utils/adminAccess.ts'
 import { installAuth401Interceptor } from './utils/authFetch.ts'
 import { readStoredJwt } from './utils/jwtToken.ts'
 
@@ -39,6 +42,19 @@ function RequireAuth({ children }: { children: React.ReactElement }) {
   if (!readStoredJwt()) {
     const redirect = `${location.pathname}${location.search}${location.hash}`
     return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />
+  }
+  return children
+}
+
+function RequireAdmin({ children }: { children: React.ReactElement }) {
+  const location = useLocation()
+  const token = readStoredJwt()
+  if (!token) {
+    const redirect = `${location.pathname}${location.search}${location.hash}`
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />
+  }
+  if (!isCurrentUserAdmin()) {
+    return <Navigate to="/nydash" replace />
   }
   return children
 }
@@ -127,6 +143,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path='/loan' element={<RequireAuth><Navigate to="/loans" replace /></RequireAuth>} />
       <Route path='/loans' element={<RequireAuth><LoansPage /></RequireAuth>} />
       <Route path='/loans/:loanId' element={<RequireAuth><LoanRoute /></RequireAuth>} />
+      <Route path='/sportsfondet' element={<RequireAuth><SportsfondetPage /></RequireAuth>} />
+      <Route path='/timeregistrering' element={<RequireAdmin><TimeRegistrationPage /></RequireAdmin>} />
       <Route path='/notifications' element={<RequireAuth><NotificationsPage /></RequireAuth>} />
       <Route path='/testpage' element={<RequireAuth><TestPage /></RequireAuth>} />
       <Route path='/game' element={<RequireAuth><GamePage /></RequireAuth>} />

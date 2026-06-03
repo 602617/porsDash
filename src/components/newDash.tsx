@@ -5,10 +5,13 @@ import "../style/newDash.css";
 import BottomNav from "./BottomNav";
 import { Link } from "react-router-dom";
 import NotificationPrompt from "./NotificationPrompt";
+import { isCurrentUserAdmin } from "../utils/adminAccess";
 
 import notifyBell from "../assets/NotificationBell.png";
 
 const NewDash: FC = () => {
+  const isAdmin = isCurrentUserAdmin();
+
   useEffect(() => {
     document.body.style.backgroundImage = "none";
     return () => {
@@ -73,7 +76,21 @@ const NewDash: FC = () => {
               L
             </span>
           </Link>
-          <Link to="/game" className="dashboard-btn" style={{ animationDelay: "320ms" }}>
+          <Link to="/sportsfondet" className="dashboard-btn" style={{ animationDelay: "400ms" }}>
+            <p>Sportsfondet</p>
+            <span className="dashIcon roleIcon" aria-hidden="true">
+              S
+            </span>
+          </Link>
+          {isAdmin ? (
+            <Link to="/timeregistrering" className="dashboard-btn" style={{ animationDelay: "480ms" }}>
+              <p>Timeregistrering</p>
+              <span className="dashIcon roleIcon" aria-hidden="true">
+                T
+              </span>
+            </Link>
+          ) : null}
+          <Link to="/game" className="dashboard-btn" style={{ animationDelay: "560ms" }}>
             <p>Dash Game</p>
             <span className="dashIcon roleIcon" aria-hidden="true">
               L

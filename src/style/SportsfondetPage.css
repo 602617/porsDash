@@ -1,0 +1,254 @@
+.sportsfondetPage {
+  position: relative;
+}
+
+.sportsfondetMain {
+  position: relative;
+  z-index: 1;
+}
+
+.sportsfondetCard {
+  margin: 12px 14px 0;
+}
+
+.sportsfondetToolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sportsfondetSectionTitle {
+  margin-bottom: 4px;
+}
+
+.sportsfondetIntro {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sportsfondetCreateBtn {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.sportsfondetState {
+  margin: 0;
+  padding: 10px 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.sportsfondetError {
+  color: #fca5a5;
+}
+
+.sportsfondetList {
+  display: grid;
+  gap: 10px;
+}
+
+.sportsfondetItem {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.sportsfondetItem:hover {
+  transform: translateY(-1px);
+  border-color: rgba(125, 211, 252, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sportsfondetItem:focus-visible {
+  outline: 2px solid rgba(125, 211, 252, 0.72);
+  outline-offset: 2px;
+}
+
+.sportsfondetItemTop,
+.sportsfondetAmountLine,
+.sportsfondetDetailTop,
+.sportsfondetOfferTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sportsfondetItemTitle {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.sportsfondetItemMeta,
+.sportsfondetUpdated,
+.sportsfondetOfferMeta,
+.sportsfondetParties {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sportsfondetItemMeta {
+  margin-top: 4px;
+}
+
+.sportsfondetStatus {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.88);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.sportsfondetStatus.status-pending {
+  border-color: rgba(125, 211, 252, 0.32);
+  background: rgba(125, 211, 252, 0.12);
+}
+
+.sportsfondetStatus.status-countered {
+  border-color: rgba(251, 191, 36, 0.36);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.sportsfondetStatus.status-accepted {
+  border-color: rgba(74, 222, 128, 0.34);
+  background: rgba(74, 222, 128, 0.12);
+}
+
+.sportsfondetStatus.status-declined {
+  border-color: rgba(248, 113, 113, 0.36);
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.sportsfondetAmountLine {
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 9px;
+  color: var(--muted2);
+  font-size: 12px;
+}
+
+.sportsfondetAmountLine strong,
+.sportsfondetDetailTop strong {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.sportsfondetDetailModal {
+  max-height: 86vh;
+  overflow: auto;
+}
+
+.sportsfondetDetail {
+  display: grid;
+  gap: 12px;
+}
+
+.sportsfondetParties {
+  display: grid;
+  gap: 4px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.16);
+  padding: 10px 12px;
+}
+
+.sportsfondetOffers {
+  display: grid;
+  gap: 8px;
+}
+
+.sportsfondetOffer {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.sportsfondetOffer p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.sportsfondetOfferTop span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sportsfondetCounterForm {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 12px;
+}
+
+.sportsfondetActionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sportsfondetActionGrid .loanDangerBtn {
+  grid-column: 1 / -1;
+}
+
+.sportsfondetArchiveBtn {
+  width: 100%;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.84);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.72rem 1rem;
+}
+
+.sportsfondetArchiveBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+@media (max-width: 560px) {
+  .sportsfondetCard {
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+
+  .sportsfondetCreateBtn {
+    width: 100%;
+  }
+
+  .sportsfondetItemTop,
+  .sportsfondetDetailTop {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sportsfondetStatus {
+    align-self: flex-start;
+  }
+
+  .sportsfondetActionGrid {
+    grid-template-columns: 1fr;
+  }
+}

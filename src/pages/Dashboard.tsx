@@ -8,8 +8,11 @@ import ItemsIcon from "../assets/Itemsicon.png"
 import MyProductsIcon from "../assets/MyProductsIcon.png"
 import DugnadIcon from "../assets/DugnadIcon.png"
 import ShoppingIcon from "../assets/ShoppingIcon.png"
+import { isCurrentUserAdmin } from "../utils/adminAccess";
 
 const Dashboard: React.FC = () => {
+  const isAdmin = isCurrentUserAdmin();
+
   return (
     <div>
       <Topbar />
@@ -42,6 +45,16 @@ const Dashboard: React.FC = () => {
         <img src={ShoppingIcon} alt="Items" className="icon" />
         Lån
         </Link>
+        <Link to="/sportsfondet" className="dashboard-button">
+        <img src={ShoppingIcon} alt="Sportsfondet" className="icon" />
+        Sportsfondet
+        </Link>
+        {isAdmin ? (
+        <Link to="/timeregistrering" className="dashboard-button">
+        <img src={ShoppingIcon} alt="Timeregistrering" className="icon" />
+        Timeregistrering
+        </Link>
+        ) : null}
       </div>
     </div>
       </main>

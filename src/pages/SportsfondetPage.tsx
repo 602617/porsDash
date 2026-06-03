@@ -185,6 +185,22 @@ function statusLabel(status: string): string {
   }
 }
 
+function buildSportsfondetDescription(parts: {
+  what: string;
+  why: string;
+  when: string;
+}): string {
+  const sections = [
+    ["Hva", parts.what],
+    ["Hvorfor", parts.why],
+    ["Når", parts.when],
+  ]
+    .map(([label, value]) => [label, value.trim()])
+    .filter(([, value]) => value);
+
+  return sections.map(([label, value]) => `${label}:\n${value}`).join("\n\n");
+}
+
 const SportsfondetPage: React.FC = () => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
   const token = useMemo(() => readStoredJwt(), []);
@@ -200,7 +216,9 @@ const SportsfondetPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [description, setDescription] = useState("");
+  const [what, setWhat] = useState("");
+  const [why, setWhy] = useState("");
+  const [whenNeeded, setWhenNeeded] = useState("");
   const [amount, setAmount] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -260,7 +278,9 @@ const SportsfondetPage: React.FC = () => {
   }, [fetchApplications]);
 
   const openCreate = () => {
-    setDescription("");
+    setWhat("");
+    setWhy("");
+    setWhenNeeded("");
     setAmount("");
     setCreateError(null);
     setCreateOpen(true);
@@ -281,10 +301,16 @@ const SportsfondetPage: React.FC = () => {
       return;
     }
 
-    if (!description.trim()) {
-      setCreateError("Beskrivelse er pakrevd.");
+    if (!what.trim() || !why.trim() || !whenNeeded.trim()) {
+      setCreateError("Fyll ut hva, hvorfor og når.");
       return;
     }
+
+    const description = buildSportsfondetDescription({
+      what,
+      why,
+      when: whenNeeded,
+    });
 
     setCreateLoading(true);
     try {
@@ -296,7 +322,7 @@ const SportsfondetPage: React.FC = () => {
         },
         body: JSON.stringify({
           type: "SPORTSFONDET",
-          description: description.trim(),
+          description,
           amount: parsedAmount,
         }),
       });
@@ -501,12 +527,32 @@ const SportsfondetPage: React.FC = () => {
 
             <form className="loanForm" onSubmit={handleCreate}>
               <label className="formField">
-                <span>Beskrivelse</span>
+                <span>Hva</span>
                 <textarea
-                  rows={4}
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
+                  rows={3}
+                  value={what}
+                  onChange={(event) => setWhat(event.target.value)}
                   placeholder="Hva trenger du stotte til?"
+                  required
+                />
+              </label>
+              <label className="formField">
+                <span>Hvorfor</span>
+                <textarea
+                  rows={3}
+                  value={why}
+                  onChange={(event) => setWhy(event.target.value)}
+                  placeholder="Hvorfor trenger du dette?"
+                  required
+                />
+              </label>
+              <label className="formField">
+                <span>Når</span>
+                <textarea
+                  rows={2}
+                  value={whenNeeded}
+                  onChange={(event) => setWhenNeeded(event.target.value)}
+                  placeholder="Nar trenger du det?"
                   required
                 />
               </label>

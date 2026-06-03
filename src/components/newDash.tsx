@@ -49,54 +49,50 @@ const NewDash: FC = () => {
       </section>
 
       <section className="bottom">
-        <div className="column">
-          <Link to="/items" className="dashboard-btn" style={{ animationDelay: "80ms" }}>
-            <p>Booking</p>
+        <Link to="/items" className="dashboard-btn" style={{ animationDelay: "80ms" }}>
+          <p>Booking</p>
+          <span className="dashIcon roleIcon" aria-hidden="true">
+            B
+          </span>
+        </Link>
+        <Link to="/dugnad" className="dashboard-btn" style={{ animationDelay: "160ms" }}>
+          <p>Arrangement</p>
+          <span className="dashIcon roleIcon" aria-hidden="true">
+            A
+          </span>
+        </Link>
+        <Link to="/myproducts" className="dashboard-btn" style={{ animationDelay: "240ms" }}>
+          <p>Mine produkter</p>
+          <span className="dashIcon roleIcon" aria-hidden="true">
+            M
+          </span>
+        </Link>
+        <Link to="/loans" className="dashboard-btn" style={{ animationDelay: "320ms" }}>
+          <p>Lån</p>
+          <span className="dashIcon roleIcon" aria-hidden="true">
+            L
+          </span>
+        </Link>
+        <Link to="/sportsfondet" className="dashboard-btn" style={{ animationDelay: "400ms" }}>
+          <p>Sportsfondet</p>
+          <span className="dashIcon roleIcon" aria-hidden="true">
+            S
+          </span>
+        </Link>
+        {isAdmin ? (
+          <Link to="/timeregistrering" className="dashboard-btn" style={{ animationDelay: "480ms" }}>
+            <p>Timeregistrering</p>
             <span className="dashIcon roleIcon" aria-hidden="true">
-              B
+              T
             </span>
           </Link>
-          <Link to="/dugnad" className="dashboard-btn" style={{ animationDelay: "160ms" }}>
-            <p>Arrangement</p>
-            <span className="dashIcon roleIcon" aria-hidden="true">
-              A
-            </span>
-          </Link>
-        </div>
-        <div className="column">
-          <Link to="/myproducts" className="dashboard-btn" style={{ animationDelay: "240ms" }}>
-            <p>Mine produkter</p>
-            <span className="dashIcon roleIcon" aria-hidden="true">
-              M
-            </span>
-          </Link>
-          <Link to="/loans" className="dashboard-btn" style={{ animationDelay: "320ms" }}>
-            <p>Lån</p>
-            <span className="dashIcon roleIcon" aria-hidden="true">
-              L
-            </span>
-          </Link>
-          <Link to="/sportsfondet" className="dashboard-btn" style={{ animationDelay: "400ms" }}>
-            <p>Sportsfondet</p>
-            <span className="dashIcon roleIcon" aria-hidden="true">
-              S
-            </span>
-          </Link>
-          {isAdmin ? (
-            <Link to="/timeregistrering" className="dashboard-btn" style={{ animationDelay: "480ms" }}>
-              <p>Timeregistrering</p>
-              <span className="dashIcon roleIcon" aria-hidden="true">
-                T
-              </span>
-            </Link>
-          ) : null}
-          <Link to="/game" className="dashboard-btn" style={{ animationDelay: "560ms" }}>
-            <p>Dash Game</p>
-            <span className="dashIcon roleIcon" aria-hidden="true">
-              L
-            </span>
-          </Link>
-        </div>
+        ) : null}
+        <Link to="/game" className="dashboard-btn" style={{ animationDelay: "560ms" }}>
+          <p>Dash Game</p>
+          <span className="dashIcon roleIcon" aria-hidden="true">
+            L
+          </span>
+        </Link>
       </section>
 
       <BottomNav />

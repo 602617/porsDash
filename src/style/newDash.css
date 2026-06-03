@@ -38,8 +38,10 @@
 .bottom {
   background: transparent;     /* MÅ matche path fill */
   padding: 24px 16px 96px;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 170px));
   justify-content: center;
+  align-items: start;
   gap: 16px;
 }
 
@@ -183,6 +185,7 @@
 
 @media (min-width: 520px) {
   .bottom {
+    grid-template-columns: repeat(2, 180px);
     gap: 22px;
     padding: 32px 18px 96px;
   }
@@ -195,6 +198,16 @@
   .dashboard-btn img {
     width: 96px;
     height: 96px;
+  }
+}
+
+@media (max-width: 360px) {
+  .bottom {
+    grid-template-columns: minmax(0, 170px);
+  }
+
+  .dashboard-btn {
+    width: min(88vw, 170px);
   }
 }
 

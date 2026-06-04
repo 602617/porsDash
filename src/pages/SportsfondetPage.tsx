@@ -744,7 +744,7 @@ const SportsfondetPage: React.FC = () => {
                   </form>
                 ) : null}
 
-                {selected.status === "ACCEPTED" || selected.status === "DECLINED" ? (
+                {view === "active" && (selected.status === "ACCEPTED" || selected.status === "DECLINED") ? (
                   <button type="button" className="sportsfondetArchiveBtn" onClick={() => void archiveSelected()} disabled={!!actionLoading}>
                     {actionLoading === "ARCHIVE" ? "Arkiverer..." : "Arkiver"}
                   </button>

@@ -36,6 +36,33 @@
   flex: 0 0 auto;
 }
 
+.sportsfondetTabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.16);
+  padding: 5px;
+}
+
+.sportsfondetTab {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 10px;
+}
+
+.sportsfondetTab.active {
+  background: rgba(125, 211, 252, 0.14);
+  color: var(--text);
+}
+
 .sportsfondetState {
   margin: 0;
   padding: 10px 0;

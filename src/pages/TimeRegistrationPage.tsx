@@ -23,6 +23,19 @@ type TimeSummary = {
   entryCount: number;
 };
 
+type WeeklySummaryDay = TimeSummary & {
+  date: string;
+  dayName: string;
+};
+
+type WeeklySummary = {
+  weekStart: string;
+  weekEnd: string;
+  totalMinutes: number;
+  overtimeMinutes: number;
+  days: WeeklySummaryDay[];
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -79,6 +92,32 @@ function normalizeSummary(raw: unknown): TimeSummary {
     totalMinutes: toMinutes(raw.totalMinutes ?? raw.total_minutes),
     overtimeMinutes: toMinutes(raw.overtimeMinutes ?? raw.overtime_minutes),
     entryCount: toMinutes(raw.entryCount ?? raw.entry_count),
+  };
+}
+
+function normalizeWeeklySummary(raw: unknown): WeeklySummary {
+  if (!isRecord(raw)) {
+    return { weekStart: "", weekEnd: "", totalMinutes: 0, overtimeMinutes: 0, days: [] };
+  }
+
+  const days = Array.isArray(raw.days)
+    ? raw.days
+        .filter(isRecord)
+        .map((day) => ({
+          date: toCleanString(day.date),
+          dayName: toCleanString(day.dayName ?? day.day_name),
+          totalMinutes: toMinutes(day.totalMinutes ?? day.total_minutes),
+          overtimeMinutes: toMinutes(day.overtimeMinutes ?? day.overtime_minutes),
+          entryCount: toMinutes(day.entryCount ?? day.entry_count),
+        }))
+    : [];
+
+  return {
+    weekStart: toCleanString(raw.weekStart ?? raw.week_start),
+    weekEnd: toCleanString(raw.weekEnd ?? raw.week_end),
+    totalMinutes: toMinutes(raw.totalMinutes ?? raw.total_minutes),
+    overtimeMinutes: toMinutes(raw.overtimeMinutes ?? raw.overtime_minutes),
+    days,
   };
 }
 
@@ -168,6 +207,14 @@ const TimeRegistrationPage: React.FC = () => {
     overtimeMinutes: 0,
     entryCount: 0,
   });
+  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary>({
+    weekStart: "",
+    weekEnd: "",
+    totalMinutes: 0,
+    overtimeMinutes: 0,
+    days: [],
+  });
+  const [startNote, setStartNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<"start" | "stop" | "delete" | "edit" | null>(null);
@@ -222,6 +269,18 @@ const TimeRegistrationPage: React.FC = () => {
     return normalizeSummary((await res.json()) as unknown);
   }, [apiBaseUrl, authHeaders]);
 
+  const fetchWeeklySummary = useCallback(async () => {
+    const res = await fetch(`${apiBaseUrl}/api/time-entries/summary/weekly`, {
+      headers: authHeaders,
+    });
+
+    if (!res.ok) {
+      throw new Error(await extractResponseMessage(res, `Kunne ikke hente ukeoversikt (${res.status})`));
+    }
+
+    return normalizeWeeklySummary((await res.json()) as unknown);
+  }, [apiBaseUrl, authHeaders]);
+
   const loadTimeData = useCallback(async () => {
     if (!token) {
       setError("Ikke innlogget.");
@@ -239,14 +298,16 @@ const TimeRegistrationPage: React.FC = () => {
     setError(null);
 
     try {
-      const [active, nextEntries, nextSummary] = await Promise.all([
+      const [active, nextEntries, nextSummary, nextWeeklySummary] = await Promise.all([
         fetchActiveEntry(),
         fetchEntries(),
         fetchSummary(),
+        fetchWeeklySummary(),
       ]);
       setActiveEntry(active);
       setEntries(nextEntries);
       setSummary(nextSummary);
+      setWeeklySummary(nextWeeklySummary);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Kunne ikke hente timeregistrering.");
       setActiveEntry(null);
@@ -254,7 +315,7 @@ const TimeRegistrationPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchActiveEntry, fetchEntries, fetchSummary, isAdmin, token]);
+  }, [fetchActiveEntry, fetchEntries, fetchSummary, fetchWeeklySummary, isAdmin, token]);
 
   useEffect(() => {
     void loadTimeData();
@@ -267,13 +328,21 @@ const TimeRegistrationPage: React.FC = () => {
     try {
       const res = await fetch(`${apiBaseUrl}/api/time-entries/${action}`, {
         method: "POST",
-        headers: authHeaders,
+        headers:
+          action === "start" && startNote.trim()
+            ? { ...authHeaders, "Content-Type": "application/json" }
+            : authHeaders,
+        body:
+          action === "start" && startNote.trim()
+            ? JSON.stringify({ note: startNote.trim() })
+            : undefined,
       });
 
       if (!res.ok) {
         throw new Error(await extractResponseMessage(res, `Kunne ikke ${action === "start" ? "starte" : "stoppe"} tid (${res.status})`));
       }
 
+      if (action === "start") setStartNote("");
       await loadTimeData();
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : "Handlingen feilet.");
@@ -397,20 +466,33 @@ const TimeRegistrationPage: React.FC = () => {
                       : "Start timeren nar du begynner, og stopp den nar du er ferdig."}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className={activeEntry ? "loanDangerBtn timeRegistrationAction" : "loanPrimaryBtn timeRegistrationAction"}
-                  disabled={!!actionLoading}
-                  onClick={() => void runAction(activeEntry ? "stop" : "start")}
-                >
-                  {activeEntry
-                    ? actionLoading === "stop"
-                      ? "Stopper..."
-                      : "Stopp"
-                    : actionLoading === "start"
-                      ? "Starter..."
-                      : "Start"}
-                </button>
+                <div className="timeRegistrationStartControls">
+                  {!activeEntry ? (
+                    <label className="formField timeRegistrationStartNote">
+                      <span>Notat (valgfritt)</span>
+                      <input
+                        type="text"
+                        value={startNote}
+                        onChange={(event) => setStartNote(event.target.value)}
+                        placeholder="Hva jobber du med?"
+                      />
+                    </label>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={activeEntry ? "loanDangerBtn timeRegistrationAction" : "loanPrimaryBtn timeRegistrationAction"}
+                    disabled={!!actionLoading}
+                    onClick={() => void runAction(activeEntry ? "stop" : "start")}
+                  >
+                    {activeEntry
+                      ? actionLoading === "stop"
+                        ? "Stopper..."
+                        : "Stopp"
+                      : actionLoading === "start"
+                        ? "Starter..."
+                        : "Start"}
+                  </button>
+                </div>
               </div>
 
               <div className="timeRegistrationStats">
@@ -432,6 +514,36 @@ const TimeRegistrationPage: React.FC = () => {
             </>
           )}
         </section>
+
+        {!loading && !error ? (
+          <section className="section card timeRegistrationCard">
+            <div className="timeRegistrationWeeklyHeader">
+              <div>
+                <div className="sectionTitle timeRegistrationTitle">Denne uken</div>
+                <p className="timeRegistrationIntro">
+                  {weeklySummary.weekStart && weeklySummary.weekEnd
+                    ? `${weeklySummary.weekStart} - ${weeklySummary.weekEnd}`
+                    : "Mandag til sondag"}
+                </p>
+              </div>
+              <strong>{formatMinutes(weeklySummary.totalMinutes)}</strong>
+            </div>
+            <div className="timeRegistrationWeek">
+              {weeklySummary.days.map((day) => (
+                <div key={day.date} className="timeRegistrationDay">
+                  <div>
+                    <strong>{day.dayName || day.date}</strong>
+                    <span>{day.entryCount} registreringer</span>
+                  </div>
+                  <div className="timeRegistrationDayTotals">
+                    <strong>{formatMinutes(day.totalMinutes)}</strong>
+                    {day.overtimeMinutes > 0 ? <span>+ {formatMinutes(day.overtimeMinutes)} overtid</span> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {!loading && !error ? (
           <section className="section card timeRegistrationCard">

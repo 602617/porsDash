@@ -43,6 +43,9 @@ const INTERNAL_ROUTE_PREFIXES = [
   "/dugnad",
   "/notifications",
   "/loan",
+  "/loans",
+  "/sportsfondet",
+  "/timeregistrering",
   "/game",
   "/handlelister",
   "/nydash",
@@ -52,14 +55,22 @@ const INTERNAL_ROUTE_PREFIXES = [
 ];
 
 const isInternalPath = (path) => {
-  if (path === "/") return true;
+  const pathname = path.split(/[?#]/, 1)[0];
+  if (pathname === "/") return true;
   return INTERNAL_ROUTE_PREFIXES.some(
-    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 };
 
 const mapApiPathToInternalPath = (path) => {
   if (!path) return "/";
+
+  const applicationMatch =
+    path.match(/^\/api\/applications\/(\d+)(?:\/respond)?$/i) ||
+    path.match(/^\/applications\/(\d+)(?:\/respond)?$/i);
+  if (applicationMatch) {
+    return `/sportsfondet?applicationId=${applicationMatch[1]}`;
+  }
 
   if (/^\/api\/notifications(\/.*)?$/i.test(path)) {
     return "/notifications";
@@ -84,6 +95,13 @@ const getDirectBookingPath = (payload) => {
   return `/items/${itemId}/bookings/${bookingId}`;
 };
 
+const getDirectApplicationPath = (payload) => {
+  if (!payload || typeof payload !== "object") return null;
+  const applicationId = payload.applicationId ?? payload.application_id;
+  if (!applicationId) return null;
+  return `/sportsfondet?applicationId=${applicationId}`;
+};
+
 const toAppEntryUrl = (internalPath) => {
   const normalized = internalPath.startsWith("/") ? internalPath : `/${internalPath}`;
   if (normalized === "/") {
@@ -99,8 +117,11 @@ const resolveNotificationTarget = (payloadOrUrl) => {
 
   const directBookingPath =
     typeof payloadOrUrl === "object" ? getDirectBookingPath(payloadOrUrl) : null;
+  const directApplicationPath =
+    typeof payloadOrUrl === "object" ? getDirectApplicationPath(payloadOrUrl) : null;
   const url =
     directBookingPath ||
+    directApplicationPath ||
     (typeof payloadOrUrl === "string" ? payloadOrUrl : payloadOrUrl.url);
   if (!url) return fallback;
 

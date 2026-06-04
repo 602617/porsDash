@@ -18,6 +18,13 @@ const toOrigin = (value?: string | null) => {
 const mapApiPathToInternalPath = (path: string): string => {
   if (!path) return "/";
 
+  const applicationMatch =
+    path.match(/^\/api\/applications\/(\d+)(?:\/respond)?$/i) ||
+    path.match(/^\/applications\/(\d+)(?:\/respond)?$/i);
+  if (applicationMatch) {
+    return `/sportsfondet?applicationId=${applicationMatch[1]}`;
+  }
+
   // Common backend notification read/action endpoints should open the notifications page.
   if (/^\/api\/notifications(\/.*)?$/i.test(path)) {
     return "/notifications";
@@ -47,8 +54,9 @@ const mapApiPathToInternalPath = (path: string): string => {
   return path.startsWith("/") ? path : `/${path}`;
 };
 
-const isInternalPath = (path: string) =>
-  path === "/" ||
+const isInternalPath = (path: string) => {
+  const pathname = path.split(/[?#]/, 1)[0];
+  return pathname === "/" ||
   [
     "/items",
     "/events",
@@ -60,13 +68,16 @@ const isInternalPath = (path: string) =>
     "/notifications",
     "/loan",
     "/loans",
+    "/sportsfondet",
+    "/timeregistrering",
     "/game",
     "/handlelister",
     "/nydash",
     "/nyevent",
     "/testpage",
     "/login",
-  ].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  ].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+};
 
 export const resolveNotificationTarget = (
   url?: string | null,

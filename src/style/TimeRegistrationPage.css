@@ -49,6 +49,18 @@
   flex: 0 0 auto;
 }
 
+.timeRegistrationStartControls {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex: 1 1 280px;
+  justify-content: flex-end;
+}
+
+.timeRegistrationStartNote {
+  width: min(280px, 100%);
+}
+
 .timeRegistrationStats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -79,6 +91,53 @@
 .timeRegistrationList {
   display: grid;
   gap: 10px;
+}
+
+.timeRegistrationWeeklyHeader,
+.timeRegistrationDay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.timeRegistrationWeeklyHeader > strong {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.timeRegistrationWeek {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.timeRegistrationDay {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.18);
+  padding: 9px 10px;
+}
+
+.timeRegistrationDay > div,
+.timeRegistrationDayTotals {
+  display: grid;
+  gap: 3px;
+}
+
+.timeRegistrationDay strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.timeRegistrationDay span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.timeRegistrationDayTotals {
+  text-align: right;
 }
 
 .timeRegistrationEntry {
@@ -179,6 +238,16 @@
   }
 
   .timeRegistrationAction {
+    width: 100%;
+  }
+
+  .timeRegistrationStartControls {
+    display: grid;
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .timeRegistrationStartNote {
     width: 100%;
   }
 }

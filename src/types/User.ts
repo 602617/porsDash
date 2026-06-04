@@ -2,5 +2,7 @@
 export interface User {
   id: number;
   username: string;
-  email?: string;  // match whatever fields UserDto has
+  email?: string;
+  role?: string;
+  applicationRoles?: string[];
 }

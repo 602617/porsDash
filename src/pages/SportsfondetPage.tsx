@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import BottomNav from "../components/BottomNav";
 import { PageHeader } from "../components/PageHeaderProps";
 import { readStoredJwt } from "../utils/jwtToken";
@@ -9,6 +10,8 @@ import "../style/SportsfondetPage.css";
 type ApplicationStatus = "PENDING" | "COUNTERED" | "ACCEPTED" | "DECLINED";
 type ApplicationType = "SPORTSFONDET" | "ANNET";
 type ResponseAction = "ACCEPT" | "DECLINE" | "COUNTER";
+type ApplicationRole = "SENDER" | "RECEIVER";
+type ApplicationView = "active" | "history";
 
 type ApplicationOffer = {
   id: number;
@@ -202,6 +205,8 @@ function buildSportsfondetDescription(parts: {
 }
 
 const SportsfondetPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openedApplicationIdRef = useRef<number | null>(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
   const token = useMemo(() => readStoredJwt(), []);
   const authHeaders = useMemo(
@@ -212,6 +217,9 @@ const SportsfondetPage: React.FC = () => {
   );
 
   const [applications, setApplications] = useState<ApplicationListItem[]>([]);
+  const [history, setHistory] = useState<ApplicationListItem[]>([]);
+  const [applicationRoles, setApplicationRoles] = useState<ApplicationRole[]>([]);
+  const [view, setView] = useState<ApplicationView>("active");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -243,31 +251,55 @@ const SportsfondetPage: React.FC = () => {
     setError(null);
 
     try {
-      const res = await fetch(`${apiBaseUrl}/api/applications`, {
-        headers: authHeaders,
-      });
+      const [activeRes, historyRes, rolesRes] = await Promise.all([
+        fetch(`${apiBaseUrl}/api/applications`, { headers: authHeaders }),
+        fetch(`${apiBaseUrl}/api/applications/history`, { headers: authHeaders }),
+        fetch(`${apiBaseUrl}/api/applications/my-role`, { headers: authHeaders }),
+      ]);
 
-      if (!res.ok) {
-        throw new Error(await extractResponseMessage(res, `Kunne ikke hente soknader (${res.status})`));
+      if (!activeRes.ok) {
+        throw new Error(await extractResponseMessage(activeRes, `Kunne ikke hente soknader (${activeRes.status})`));
+      }
+      if (!historyRes.ok) {
+        throw new Error(await extractResponseMessage(historyRes, `Kunne ikke hente historikk (${historyRes.status})`));
+      }
+      if (!rolesRes.ok) {
+        throw new Error(await extractResponseMessage(rolesRes, `Kunne ikke hente roller (${rolesRes.status})`));
       }
 
-      const payload = (await res.json()) as unknown;
-      const nextApplications = Array.isArray(payload)
-        ? payload
-            .map(normalizeListItem)
-            .filter((entry): entry is ApplicationListItem => entry !== null)
-            .filter((entry) => entry.type === "SPORTSFONDET")
-            .sort((a, b) => {
-              const aTime = new Date(a.updatedAt).getTime() || 0;
-              const bTime = new Date(b.updatedAt).getTime() || 0;
-              return bTime - aTime;
-            })
-        : [];
+      const normalizeApplicationList = (payload: unknown) =>
+        Array.isArray(payload)
+          ? payload
+              .map(normalizeListItem)
+              .filter((entry): entry is ApplicationListItem => entry !== null)
+              .filter((entry) => entry.type === "SPORTSFONDET")
+              .sort((a, b) => {
+                const aTime = new Date(a.updatedAt).getTime() || 0;
+                const bTime = new Date(b.updatedAt).getTime() || 0;
+                return bTime - aTime;
+              })
+          : [];
 
-      setApplications(nextApplications);
+      const [activePayload, historyPayload, rolesPayload] = await Promise.all([
+        activeRes.json() as Promise<unknown>,
+        historyRes.json() as Promise<unknown>,
+        rolesRes.json() as Promise<unknown>,
+      ]);
+
+      setApplications(normalizeApplicationList(activePayload));
+      setHistory(normalizeApplicationList(historyPayload));
+      setApplicationRoles(
+        Array.isArray(rolesPayload)
+          ? rolesPayload
+              .map((role) => toCleanString(role).toUpperCase())
+              .filter((role): role is ApplicationRole => role === "SENDER" || role === "RECEIVER")
+          : []
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Kunne ikke hente soknader.");
       setApplications([]);
+      setHistory([]);
+      setApplicationRoles([]);
     } finally {
       setLoading(false);
     }
@@ -372,11 +404,27 @@ const SportsfondetPage: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const rawApplicationId = searchParams.get("applicationId");
+    const applicationId = rawApplicationId ? Number(rawApplicationId) : NaN;
+    if (!Number.isInteger(applicationId) || applicationId <= 0) return;
+    if (openedApplicationIdRef.current === applicationId) return;
+
+    openedApplicationIdRef.current = applicationId;
+    void openDetail(applicationId);
+  }, [searchParams]);
+
   const closeDetail = () => {
     if (actionLoading) return;
     setSelected(null);
     setDetailError(null);
     setActionError(null);
+    openedApplicationIdRef.current = null;
+    if (searchParams.has("applicationId")) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.delete("applicationId");
+      setSearchParams(nextSearchParams, { replace: true });
+    }
   };
 
   const refreshSelected = async (applicationId: number) => {
@@ -447,6 +495,9 @@ const SportsfondetPage: React.FC = () => {
     }
   };
 
+  const visibleApplications = view === "active" ? applications : history;
+  const canCreate = applicationRoles.includes("SENDER");
+
   return (
     <div className="profilePage sportsfondetPage">
       <div className="bgGlow" />
@@ -461,8 +512,27 @@ const SportsfondetPage: React.FC = () => {
                 Send inn behov, folg status, og svar pa tilbud fra mottakere.
               </p>
             </div>
-            <button type="button" className="loanPrimaryBtn sportsfondetCreateBtn" onClick={openCreate}>
-              Ny soknad
+            {canCreate ? (
+              <button type="button" className="loanPrimaryBtn sportsfondetCreateBtn" onClick={openCreate}>
+                Ny soknad
+              </button>
+            ) : null}
+          </div>
+
+          <div className="sportsfondetTabs" role="tablist" aria-label="Soknadsvisning">
+            <button
+              type="button"
+              className={`sportsfondetTab${view === "active" ? " active" : ""}`}
+              onClick={() => setView("active")}
+            >
+              Aktive ({applications.length})
+            </button>
+            <button
+              type="button"
+              className={`sportsfondetTab${view === "history" ? " active" : ""}`}
+              onClick={() => setView("history")}
+            >
+              Historikk ({history.length})
             </button>
           </div>
 
@@ -470,13 +540,17 @@ const SportsfondetPage: React.FC = () => {
             <p className="sportsfondetState">Laster soknader...</p>
           ) : error ? (
             <p className="sportsfondetState sportsfondetError">{error}</p>
-          ) : applications.length === 0 ? (
+          ) : visibleApplications.length === 0 ? (
             <p className="sportsfondetState">
-              Ingen Sportsfondet-soknader funnet. Du ma ha SENDER/RECEIVER-tilgang i backend for a bruke funksjonen.
+              {view === "history"
+                ? "Ingen ferdigbehandlede soknader i historikken."
+                : applicationRoles.length === 0
+                  ? "Du har ingen SENDER/RECEIVER-rolle for Sportsfondet."
+                  : "Ingen aktive Sportsfondet-soknader funnet."}
             </p>
           ) : (
             <div className="sportsfondetList">
-              {applications.map((application) => (
+              {visibleApplications.map((application) => (
                 <article
                   key={application.id}
                   className="sportsfondetItem"
@@ -670,9 +744,11 @@ const SportsfondetPage: React.FC = () => {
                   </form>
                 ) : null}
 
-                <button type="button" className="sportsfondetArchiveBtn" onClick={() => void archiveSelected()} disabled={!!actionLoading}>
-                  {actionLoading === "ARCHIVE" ? "Arkiverer..." : "Arkiver"}
-                </button>
+                {selected.status === "ACCEPTED" || selected.status === "DECLINED" ? (
+                  <button type="button" className="sportsfondetArchiveBtn" onClick={() => void archiveSelected()} disabled={!!actionLoading}>
+                    {actionLoading === "ARCHIVE" ? "Arkiverer..." : "Arkiver"}
+                  </button>
+                ) : null}
 
                 {actionError ? <div className="formNotice error">{actionError}</div> : null}
               </div>

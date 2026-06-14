@@ -193,15 +193,10 @@ function buildSportsfondetDescription(parts: {
   why: string;
   when: string;
 }): string {
-  const sections = [
-    ["Hva", parts.what],
-    ["Hvorfor", parts.why],
-    ["Når", parts.when],
-  ]
-    .map(([label, value]) => [label, value.trim()])
-    .filter(([, value]) => value);
-
-  return sections.map(([label, value]) => `${label}:\n${value}`).join("\n\n");
+  return [parts.what, parts.why, parts.when]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 const SportsfondetPage: React.FC = () => {

@@ -1,4 +1,4 @@
-﻿import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { FC } from "react";
 import "../style/LoanPage.css";
 import "../style/newDash.css";
@@ -9,8 +9,44 @@ import { isCurrentUserAdmin } from "../utils/adminAccess";
 
 import notifyBell from "../assets/NotificationBell.png";
 
+type ScoreResponse = {
+  username: string;
+  totalPoints: number;
+  history: {
+    id: number;
+    action: string;
+    points: number;
+    createdAt: string;
+  }[];
+};
+
+function formatScoreAction(action: string): string {
+  return action
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatScoreDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("nb-NO", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 const NewDash: FC = () => {
   const isAdmin = isCurrentUserAdmin();
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
+  const [scoreData, setScoreData] = useState<ScoreResponse | null>(null);
+  const [isScoreHistoryOpen, setIsScoreHistoryOpen] = useState(false);
+  const score = scoreData?.totalPoints ?? null;
+  const scoreHistory = scoreData?.history ?? [];
 
   useEffect(() => {
     document.body.style.backgroundImage = "none";
@@ -18,6 +54,50 @@ const NewDash: FC = () => {
       document.body.style.backgroundImage = "";
     };
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("jwt") || "";
+    if (!apiBaseUrl || !token) {
+      setScoreData({ username: "", totalPoints: 0, history: [] });
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchScore() {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/score`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Could not fetch score: ${res.status}`);
+        }
+
+        const data = (await res.json()) as ScoreResponse;
+        if (!cancelled) {
+          setScoreData({
+            ...data,
+            totalPoints: data.totalPoints ?? 0,
+            history: Array.isArray(data.history) ? data.history : [],
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) {
+          setScoreData({ username: "", totalPoints: 0, history: [] });
+        }
+      }
+    }
+
+    fetchScore();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBaseUrl]);
 
   return (
     <div>
@@ -28,11 +108,16 @@ const NewDash: FC = () => {
           <div className="left">
             <h1 className="app-title">Porsdash</h1>
             <div className="ownerLine">
-              <span className="rolePill">
+              <button
+                type="button"
+                className="rolePill scorePill"
+                onClick={() => setIsScoreHistoryOpen(true)}
+                aria-label="Vis poenghistorikk"
+              >
                 <span className="roleIcon">P</span>
                 <span className="roleLabel">Poeng</span>
-                <span className="roleName">100</span>
-              </span>
+                <span className="roleName">{score === null ? "..." : score}</span>
+              </button>
             </div>
           </div>
           <div className="right">
@@ -94,6 +179,51 @@ const NewDash: FC = () => {
           </span>
         </Link>
       </section>
+
+      {isScoreHistoryOpen ? (
+        <div className="loanModalBackdrop" onClick={() => setIsScoreHistoryOpen(false)}>
+          <div
+            className="loanModal scoreHistoryModal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="scoreHistoryTitle"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="loanModalHeader">
+              <div>
+                <div id="scoreHistoryTitle" className="loanModalTitle">
+                  Poenghistorikk
+                </div>
+                <div className="scoreHistoryTotal">{scoreData?.totalPoints ?? 0} poeng totalt</div>
+              </div>
+              <button
+                type="button"
+                className="loanModalClose"
+                onClick={() => setIsScoreHistoryOpen(false)}
+                aria-label="Lukk"
+              >
+                x
+              </button>
+            </div>
+
+            {scoreHistory.length === 0 ? (
+              <div className="scoreHistoryEmpty">Ingen poeng enda.</div>
+            ) : (
+              <div className="scoreHistoryList">
+                {scoreHistory.map((entry) => (
+                  <div key={entry.id} className="scoreHistoryRow">
+                    <div>
+                      <div className="scoreHistoryAction">{formatScoreAction(entry.action)}</div>
+                      <div className="scoreHistoryDate">{formatScoreDate(entry.createdAt)}</div>
+                    </div>
+                    <div className="scoreHistoryPoints">+{entry.points}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <BottomNav />
     </div>

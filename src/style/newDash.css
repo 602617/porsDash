@@ -183,6 +183,86 @@
   text-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
 }
 
+.scorePill {
+  border: 1px solid rgba(255,255,255,0.14);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+.scorePill:hover {
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.24);
+  transform: translateY(-1px);
+}
+
+.scorePill:focus-visible {
+  outline: 2px solid rgba(125, 211, 252, 0.8);
+  outline-offset: 3px;
+}
+
+.scoreHistoryModal {
+  max-height: min(620px, 86vh);
+  overflow: hidden;
+}
+
+.scoreHistoryTotal {
+  margin-top: 4px;
+  color: rgba(255,255,255,0.62);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.scoreHistoryList {
+  display: grid;
+  gap: 10px;
+  max-height: min(460px, 64vh);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.scoreHistoryRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 14px;
+  background: rgba(0,0,0,0.18);
+}
+
+.scoreHistoryAction {
+  color: rgba(255,255,255,0.90);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.scoreHistoryDate {
+  margin-top: 4px;
+  color: rgba(255,255,255,0.58);
+  font-size: 12px;
+}
+
+.scoreHistoryPoints {
+  color: #0b0d14;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.92), rgba(167, 139, 250, 0.92));
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.scoreHistoryEmpty {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+  color: rgba(255,255,255,0.68);
+  font-size: 13px;
+  text-align: center;
+}
+
 @media (min-width: 520px) {
   .bottom {
     grid-template-columns: repeat(2, 180px);

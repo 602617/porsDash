@@ -21,6 +21,7 @@ import LoanPage from './pages/LoanPage.tsx'
 import LoansPage from './pages/LoansPage.tsx'
 import NotificationsPage from './pages/NotificationsPage.tsx'
 import GamePage from './pages/GamePage.tsx'
+import PushupsPage from './pages/PushupsPage.tsx'
 import BookingDetailPage from './pages/BookingDetailPage.tsx'
 import MyBookingsPage from './pages/MyBookingsPage.tsx'
 import SportsfondetPage from './pages/SportsfondetPage.tsx'
@@ -148,6 +149,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path='/notifications' element={<RequireAuth><NotificationsPage /></RequireAuth>} />
       <Route path='/testpage' element={<RequireAuth><TestPage /></RequireAuth>} />
       <Route path='/game' element={<RequireAuth><GamePage /></RequireAuth>} />
+      <Route path='/pushups' element={<RequireAdmin><PushupsPage /></RequireAdmin>} />
     </Routes>
   </BrowserRouter>
 </React.StrictMode>,

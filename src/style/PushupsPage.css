@@ -1,0 +1,674 @@
+.pushupsPage {
+  min-height: 100vh;
+  padding-bottom: 96px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.pushupsDashboard {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 18px 14px 0;
+  display: grid;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.pushupsHeroCard,
+.pushupsStatsGrid > div,
+.pushupsGoalCard,
+.pushupsPanel,
+.pushupsSettings,
+.pushupsResumeCard {
+  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.035));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.pushupsHeroCard {
+  padding: 18px;
+  border-radius: 20px;
+  display: grid;
+  gap: 12px;
+}
+
+.pushupsHeroCard.complete {
+  border-color: rgba(125,211,252,0.38);
+  background:
+    radial-gradient(360px 180px at 20% 0%, rgba(125,211,252,0.18), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035));
+}
+
+.pushupsStreak,
+.pushupsLeft,
+.pushupsSyncState {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pushupsToday {
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.pushupsProgressBar {
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+
+.pushupsProgressBar span {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(125,211,252,0.95), rgba(167,139,250,0.92), rgba(244,114,182,0.82));
+  transition: width 240ms ease;
+}
+
+.pushupsCelebration {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(125,211,252,0.14);
+  border: 1px solid rgba(125,211,252,0.28);
+  color: rgba(255,255,255,0.94);
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.pushupsCelebration.small {
+  background: rgba(167,139,250,0.12);
+  border-color: rgba(167,139,250,0.26);
+}
+
+.pushupsStartBtn,
+.pushupsGoalPresets button,
+.pushupsCustomGoal button,
+.pushupsResumeCard button,
+.pushupsTabs button,
+.pushupsSecondaryBtn,
+.pushupsFinishBtn {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.pushupsStartBtn {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(125,211,252,0.94), rgba(167,139,250,0.94));
+  color: #0b0d14;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.pushupsInlineError {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(244,114,182,0.32);
+  background: rgba(244,114,182,0.12);
+  color: rgba(255,255,255,0.88);
+  font-size: 13px;
+}
+
+.pushupsStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pushupsStatsGrid > div,
+.pushupsStatButton {
+  min-height: 92px;
+  padding: 14px;
+  border-radius: 16px;
+  display: grid;
+  align-content: space-between;
+}
+
+.pushupsStatButton {
+  width: 100%;
+  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.035));
+  color: var(--text);
+  text-align: left;
+  font-family: inherit;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.pushupsStatButton:hover {
+  border-color: rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.10);
+  transform: translateY(-1px);
+}
+
+.pushupsStatButton:focus-visible {
+  outline: 2px solid rgba(125,211,252,0.8);
+  outline-offset: 3px;
+}
+
+.pushupsStatsGrid span,
+.pushupsSectionTitle {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pushupsStatsGrid strong,
+.pushupsStatButton strong {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.pushupsGoalCard,
+.pushupsPanel,
+.pushupsSettings,
+.pushupsResumeCard {
+  padding: 14px;
+  border-radius: 18px;
+}
+
+.pushupsGoalToggle {
+  width: 100%;
+  min-height: 58px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.pushupsGoalToggle span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pushupsGoalToggle strong {
+  font-size: 16px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.pushupsGoalToggle:focus-visible {
+  outline: 2px solid rgba(125,211,252,0.8);
+  outline-offset: 4px;
+}
+
+.pushupsGoalPresets,
+.pushupsTabs {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.pushupsGoalPresets button,
+.pushupsTabs button {
+  flex: 0 0 auto;
+  min-width: 54px;
+  min-height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  color: rgba(255,255,255,0.82);
+  font-weight: 800;
+}
+
+.pushupsGoalPresets button.active,
+.pushupsTabs button.active {
+  background: rgba(125,211,252,0.18);
+  border-color: rgba(125,211,252,0.35);
+  color: rgba(255,255,255,0.95);
+}
+
+.pushupsTabs button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pushupsCustomGoal {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.pushupsCustomGoal input {
+  min-width: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.22);
+  color: var(--text);
+  padding: 0 12px;
+  font: inherit;
+}
+
+.pushupsCustomGoal button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.12);
+  color: var(--text);
+  font-weight: 800;
+  padding: 0 14px;
+}
+
+.pushupsHistoryList,
+.pushupsLeaderboard {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.pushupsStreakGrid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pushupsStreakGrid > div {
+  min-height: 86px;
+  padding: 12px;
+  border-radius: 14px;
+  background:
+    radial-gradient(180px 100px at 20% 0%, rgba(125,211,252,0.12), transparent 70%),
+    rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: grid;
+  align-content: space-between;
+}
+
+.pushupsStreakGrid span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pushupsStreakGrid strong {
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.pushupsStreakGrid small {
+  color: var(--muted2);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.pushupsHistoryRow,
+.pushupsLeaderboard > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.18);
+  color: rgba(255,255,255,0.82);
+  font-size: 13px;
+}
+
+.pushupsLeaderboard > div.currentUser {
+  border: 1px solid rgba(125,211,252,0.35);
+  background: rgba(125,211,252,0.12);
+}
+
+.pushupsEmpty {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.pushupsSettings label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 64px;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pushupsSettings p {
+  margin: 10px 0 0;
+  color: var(--muted2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pushupsResumeCard {
+  display: grid;
+  gap: 10px;
+}
+
+.pushupsResumeCard div {
+  display: grid;
+  gap: 4px;
+}
+
+.pushupsResumeCard span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pushupsResumeCard button {
+  min-height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.pushupsTracker {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: max(16px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(520px 360px at 50% 45%, rgba(125,211,252,0.16), transparent 70%),
+    #070912;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
+.pushupsTracker > audio {
+  display: none;
+}
+
+.pushupsTrackerControls {
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.055);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.pushupsTouchArea {
+  grid-row: 1;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 18px;
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  position: relative;
+  z-index: 2;
+}
+
+.pushupsTouchArea.paused {
+  opacity: 0.58;
+}
+
+.pushupsCounterPulse {
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+  font-size: clamp(118px, 38vw, 320px);
+  font-weight: 900;
+  line-height: 0.82;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  text-shadow:
+    0 0 34px rgba(125,211,252,0.24),
+    0 0 60px rgba(167,139,250,0.18);
+  animation: pushupPulse 180ms ease-out;
+}
+
+.pushupsPausedText {
+  color: var(--muted);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.pushupsGoalReachedBadge {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(125,211,252,0.36);
+  background: rgba(125,211,252,0.14);
+  color: rgba(255,255,255,0.94);
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.28), 0 0 32px rgba(125,211,252,0.16);
+  animation: goalBadgeIn 300ms cubic-bezier(.2,1,.2,1) both;
+}
+
+.pushupsTrackerControls {
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  position: relative;
+  z-index: 4;
+}
+
+.pushupsSecondaryBtn,
+.pushupsFinishBtn {
+  min-height: 54px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.pushupsSecondaryBtn {
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.08);
+  color: var(--text);
+}
+
+.pushupsFinishBtn {
+  border: 1px solid rgba(244,114,182,0.32);
+  background: rgba(244,114,182,0.16);
+  color: var(--text);
+}
+
+.pushupsTrackerSync {
+  position: fixed;
+  left: 50%;
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 86px);
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  z-index: 4;
+}
+
+.pushupsGoalBurst {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(125,211,252,0.28), transparent 34%),
+    radial-gradient(circle at 50% 48%, rgba(244,114,182,0.18), transparent 52%);
+  animation: celebrationBackdrop 1000ms ease both;
+}
+
+.pushupsBurstRing {
+  position: absolute;
+  width: 38vmin;
+  aspect-ratio: 1;
+  border: 3px solid rgba(125,211,252,0.42);
+  border-radius: 50%;
+  animation: celebrationRing 720ms ease-out infinite;
+}
+
+.pushupsBurstRing.two {
+  border-color: rgba(244,114,182,0.32);
+  animation-delay: 180ms;
+}
+
+.pushupsConfetti {
+  position: absolute;
+  inset: 0;
+}
+
+.pushupsConfetti span {
+  --i: 0;
+  --x: 50%;
+  position: absolute;
+  left: var(--x);
+  top: -20px;
+  width: 9px;
+  height: 18px;
+  border-radius: 3px;
+  background: hsl(calc(var(--i) * 29), 86%, 68%);
+  transform: rotate(calc(var(--i) * 17deg));
+  animation: confettiFall 950ms cubic-bezier(.2,.7,.2,1) both;
+  animation-delay: calc(var(--i) * 16ms);
+}
+
+.pushupsGoalModal {
+  display: grid;
+  gap: 12px;
+}
+
+.pushupsGoalSpinner {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 58px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background:
+    radial-gradient(220px 120px at 50% 30%, rgba(125,211,252,0.12), transparent 70%),
+    rgba(0,0,0,0.18);
+}
+
+.pushupsGoalSpinner button {
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.92);
+  font-size: 30px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.pushupsGoalSpinner input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: clamp(64px, 18vw, 104px);
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  outline: none;
+}
+
+.pushupsGoalSaveBtn {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(125,211,252,0.94), rgba(167,139,250,0.94));
+  color: #0b0d14;
+  font-size: 16px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+@keyframes pushupPulse {
+  0% { transform: scale(0.94); filter: blur(1px); }
+  80% { transform: scale(1.04); filter: blur(0); }
+  100% { transform: scale(1); }
+}
+
+@keyframes celebrationBackdrop {
+  0% { opacity: 0; transform: scale(0.98); }
+  12% { opacity: 1; transform: scale(1); }
+  86% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes celebrationRing {
+  0% { opacity: 0.8; transform: scale(0.3); }
+  100% { opacity: 0; transform: scale(2.8); }
+}
+
+@keyframes confettiFall {
+  0% { opacity: 0; transform: translate3d(0, -24px, 0) rotate(0deg); }
+  12% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate3d(calc((var(--i) - 13) * 8px), 110vh, 0) rotate(calc(var(--i) * 48deg));
+  }
+}
+
+@keyframes goalBadgeIn {
+  0% { opacity: 0; transform: translate(-50%, -12px) scale(0.94); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@media (min-width: 760px) {
+  .pushupsDashboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pushupsHeroCard,
+  .pushupsResumeCard,
+  .pushupsStreakPanel,
+  .pushupsSettings {
+    grid-column: 1 / -1;
+  }
+}

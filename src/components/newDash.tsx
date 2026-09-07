@@ -178,6 +178,14 @@ const NewDash: FC = () => {
             L
           </span>
         </Link>
+        {isAdmin ? (
+          <Link to="/pushups" className="dashboard-btn" style={{ animationDelay: "640ms" }}>
+            <p>Armhevinger</p>
+            <span className="dashIcon roleIcon" aria-hidden="true">
+              P
+            </span>
+          </Link>
+        ) : null}
       </section>
 
       {isScoreHistoryOpen ? (

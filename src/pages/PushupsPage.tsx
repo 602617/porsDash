@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "../components/BottomNav";
+import MotivationVideoBackground from "../components/MotivationVideoBackground";
 import { PageHeader } from "../components/PageHeaderProps";
 import { readStoredJwt } from "../utils/jwtToken";
 import pushupTapSound from "../assets/sound/mixkit-correct-answer-tone-2870.wav";
@@ -51,6 +52,9 @@ type ActiveSession = {
 };
 
 const STORAGE_KEY = "pushups.activeSession.v1";
+const MOTIVATION_MODE_KEY = "pushups.motivationMode.v1";
+const MOTIVATION_INTRO_SRC = "/intro/intro2.mp4";
+const MOTIVATION_INTRO_FADE_MS = 2_000;
 const SYNC_EVERY_COUNT = 5;
 const SYNC_EVERY_MS = 25_000;
 const DEFAULT_COOLDOWN_MS = 400;
@@ -293,6 +297,14 @@ function saveActiveSession(session: ActiveSession | null): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 }
 
+function readMotivationMode(): boolean {
+  try {
+    return localStorage.getItem(MOTIVATION_MODE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 function playCountSound(audio: HTMLAudioElement | null): void {
   if (!audio) return;
   audio.currentTime = 0;
@@ -315,6 +327,9 @@ const PushupsPage: React.FC = () => {
   const [customGoal, setCustomGoal] = useState("");
   const [leaderboardTab, setLeaderboardTab] = useState<LeaderboardTab>("allTime");
   const [cooldownMs, setCooldownMs] = useState(DEFAULT_COOLDOWN_MS);
+  const [motivationMode, setMotivationMode] = useState(() => readMotivationMode());
+  const [showMotivationIntro, setShowMotivationIntro] = useState(false);
+  const [motivationIntroActive, setMotivationIntroActive] = useState(false);
   const [pulseKey, setPulseKey] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [recordShown, setRecordShown] = useState(false);
@@ -324,6 +339,8 @@ const PushupsPage: React.FC = () => {
   const syncPromiseRef = useRef<Promise<unknown> | null>(null);
   const didMountPersistRef = useRef(false);
   const countAudioRef = useRef<HTMLAudioElement | null>(null);
+  const motivationIntroVideoRef = useRef<HTMLVideoElement | null>(null);
+  const motivationIntroTimerRef = useRef<number | null>(null);
   const goalCelebrationTimerRef = useRef<number | null>(null);
 
   const todayWithSession = summary.todayCount + (activeSession ? activeSession.sessionCount : 0);
@@ -397,6 +414,35 @@ const PushupsPage: React.FC = () => {
   }, [fetchSummary]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(MOTIVATION_MODE_KEY, String(motivationMode));
+    } catch {
+    }
+  }, [motivationMode]);
+
+  useEffect(() => {
+    if (!showMotivationIntro) return;
+    motivationIntroTimerRef.current = window.setTimeout(() => {
+      setMotivationIntroActive(true);
+      const video = motivationIntroVideoRef.current;
+      if (video) {
+        video.currentTime = 0;
+        video.muted = false;
+        video.volume = 1;
+        void video.play().catch(() => undefined);
+      }
+      motivationIntroTimerRef.current = null;
+    }, MOTIVATION_INTRO_FADE_MS);
+
+    return () => {
+      if (motivationIntroTimerRef.current !== null) {
+        window.clearTimeout(motivationIntroTimerRef.current);
+        motivationIntroTimerRef.current = null;
+      }
+    };
+  }, [showMotivationIntro]);
+
+  useEffect(() => {
     if (!didMountPersistRef.current) {
       didMountPersistRef.current = true;
       return;
@@ -430,6 +476,9 @@ const PushupsPage: React.FC = () => {
     return () => {
       if (goalCelebrationTimerRef.current !== null) {
         window.clearTimeout(goalCelebrationTimerRef.current);
+      }
+      if (motivationIntroTimerRef.current !== null) {
+        window.clearTimeout(motivationIntroTimerRef.current);
       }
     };
   }, []);
@@ -683,6 +732,35 @@ const PushupsPage: React.FC = () => {
     setGoalCelebrationShown(false);
   }, [recoveredSession]);
 
+  const closeMotivationIntro = useCallback(() => {
+    if (motivationIntroTimerRef.current !== null) {
+      window.clearTimeout(motivationIntroTimerRef.current);
+      motivationIntroTimerRef.current = null;
+    }
+    const video = motivationIntroVideoRef.current;
+    if (video) {
+      video.pause();
+      video.currentTime = 0;
+    }
+    setMotivationIntroActive(false);
+    setShowMotivationIntro(false);
+  }, []);
+
+  const handleMotivationModeChange = useCallback((enabled: boolean) => {
+    setMotivationMode(enabled);
+    if (enabled) {
+      setMotivationIntroActive(false);
+      setShowMotivationIntro(true);
+      return;
+    }
+    closeMotivationIntro();
+  }, [closeMotivationIntro]);
+
+  const handleMotivationIntroEnded = useCallback(() => {
+    closeMotivationIntro();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [closeMotivationIntro]);
+
   const exitSession = useCallback(() => {
     setActiveSession((current) => {
       if (!current) {
@@ -734,6 +812,7 @@ const PushupsPage: React.FC = () => {
     return (
       <main className={`pushupsTracker${showGoalCelebration ? " celebrating" : ""}`}>
         <audio ref={countAudioRef} src={pushupTapSound} preload="auto" />
+        {motivationMode ? <MotivationVideoBackground /> : null}
         {isGoalComplete && !showGoalCelebration ? <div className="pushupsGoalReachedBadge">Dagsmål nådd</div> : null}
         <button
           type="button"
@@ -935,6 +1014,15 @@ const PushupsPage: React.FC = () => {
         </section>
 
         <section className="pushupsSettings">
+          <label className="pushupsMotivationToggle">
+            Motivasjonsmodus
+            <input
+              type="checkbox"
+              checked={motivationMode}
+              onChange={(event) => handleMotivationModeChange(event.target.checked)}
+            />
+            <span>{motivationMode ? "På" : "Av"}</span>
+          </label>
           <label>
             Tellepause
             <input
@@ -950,6 +1038,19 @@ const PushupsPage: React.FC = () => {
           <p>V1 legger hele økten på den lokale datoen den startet. Det hindrer delte eller doble tellinger hvis økten går over midnatt.</p>
         </section>
       </section>
+
+      {showMotivationIntro ? (
+        <div className={`pushupsMotivationIntro${motivationIntroActive ? " videoActive" : ""}`}>
+          <video
+            ref={motivationIntroVideoRef}
+            src={MOTIVATION_INTRO_SRC}
+            playsInline
+            preload="auto"
+            onEnded={handleMotivationIntroEnded}
+            aria-hidden="true"
+          />
+        </div>
+      ) : null}
 
       {needsGoal || isGoalEditorOpen ? (
         <div className="loanModalBackdrop" onClick={needsGoal ? undefined : closeGoalEditor}>

@@ -568,14 +568,15 @@
 .pushupsTrackerControls {
   grid-row: 2;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
   gap: 10px;
   position: relative;
   z-index: 4;
 }
 
 .pushupsSecondaryBtn,
-.pushupsFinishBtn {
+.pushupsFinishBtn,
+.pushupsDiscardBtn {
   min-height: 54px;
   border-radius: 16px;
   font-size: 16px;
@@ -594,6 +595,12 @@
   color: var(--text);
 }
 
+.pushupsDiscardBtn {
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.78);
+}
+
 .pushupsTrackerSync {
   position: fixed;
   left: 50%;
@@ -609,7 +616,7 @@
   position: fixed;
   left: 14px;
   right: 14px;
-  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 86px);
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 158px);
   z-index: 4;
   padding: 12px 14px;
   border-radius: 14px;

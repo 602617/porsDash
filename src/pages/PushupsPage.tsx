@@ -51,7 +51,7 @@ type ActiveSession = {
   dailyGoal: number;
 };
 
-const STORAGE_KEY = "pushups.activeSession.v1";
+const LEGACY_STORAGE_KEY = "pushups.activeSession.v1";
 const MOTIVATION_MODE_KEY = "pushups.motivationMode.v1";
 const MOTIVATION_INTRO_SRC = "/intro/intro2.mp4";
 const MOTIVATION_INTRO_FADE_MS = 2_000;
@@ -269,36 +269,6 @@ function countPeriodStreak(history: PushupDay[], startDate: Date, todayCompleted
   return streak;
 }
 
-function readActiveSession(): ActiveSession | null {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") as unknown;
-    if (!isRecord(parsed)) return null;
-    const sessionId = toStringValue(parsed.sessionId);
-    if (!sessionId) return null;
-    return {
-      sessionId,
-      startedAt: toStringValue(parsed.startedAt) || new Date().toISOString(),
-      sessionDate: toStringValue(parsed.sessionDate) || localDateKey(),
-      sessionCount: toNumber(parsed.sessionCount),
-      syncedCount: toNumber(parsed.syncedCount),
-      lastRegisteredTouch: toNumber(parsed.lastRegisteredTouch),
-      paused: Boolean(parsed.paused),
-      completed: Boolean(parsed.completed),
-      dailyGoal: toNumber(parsed.dailyGoal),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function saveActiveSession(session: ActiveSession | null): void {
-  if (!session || session.completed) {
-    localStorage.removeItem(STORAGE_KEY);
-    return;
-  }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-}
-
 function readMotivationMode(): boolean {
   try {
     return localStorage.getItem(MOTIVATION_MODE_KEY) === "true";
@@ -322,7 +292,6 @@ const PushupsPage: React.FC = () => {
   const [summary, setSummary] = useState<PushupsSummary>(() => normalizeSummary(null));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [recoveredSession, setRecoveredSession] = useState<ActiveSession | null>(() => readActiveSession());
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [needsGoal, setNeedsGoal] = useState(false);
   const [isGoalEditorOpen, setIsGoalEditorOpen] = useState(false);
@@ -340,7 +309,6 @@ const PushupsPage: React.FC = () => {
   const [goalCelebrationShown, setGoalCelebrationShown] = useState(false);
   const lastSyncAtRef = useRef(Date.now());
   const syncPromiseRef = useRef<Promise<unknown> | null>(null);
-  const didMountPersistRef = useRef(false);
   const countAudioRef = useRef<HTMLAudioElement | null>(null);
   const motivationIntroVideoRef = useRef<HTMLVideoElement | null>(null);
   const motivationIntroTimerRef = useRef<number | null>(null);
@@ -418,6 +386,13 @@ const PushupsPage: React.FC = () => {
 
   useEffect(() => {
     try {
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
       localStorage.setItem(MOTIVATION_MODE_KEY, String(motivationMode));
     } catch {
     }
@@ -444,18 +419,6 @@ const PushupsPage: React.FC = () => {
       }
     };
   }, [showMotivationIntro]);
-
-  useEffect(() => {
-    if (!didMountPersistRef.current) {
-      didMountPersistRef.current = true;
-      return;
-    }
-    if (activeSession) {
-      saveActiveSession(activeSession);
-    } else if (!recoveredSession) {
-      saveActiveSession(null);
-    }
-  }, [activeSession, recoveredSession]);
 
   useEffect(() => {
     const canStartGoalCelebration =
@@ -487,7 +450,7 @@ const PushupsPage: React.FC = () => {
   }, []);
 
   const handleSessionRequestError = useCallback((status: number, message: string) => {
-    const nextMessage = status === 403 ? FORBIDDEN_SESSION_MESSAGE : message;
+    const nextMessage = status === 403 ? message || FORBIDDEN_SESSION_MESSAGE : message;
     setSessionSyncError(nextMessage);
     if (status === 403) {
       setActiveSession((current) => (current ? { ...current, paused: true } : current));
@@ -617,7 +580,6 @@ const PushupsPage: React.FC = () => {
         completed: false,
         dailyGoal: goal,
       });
-      setRecoveredSession(null);
       setShowGoalCelebration(false);
       setGoalCelebrationShown(false);
       setSessionSyncError(null);
@@ -737,9 +699,7 @@ const PushupsPage: React.FC = () => {
             longestStreak: toNumber(payload.longestStreak, current.longestStreak),
           }));
         }
-        saveActiveSession(null);
         setActiveSession(null);
-        setRecoveredSession(null);
         setShowGoalCelebration(false);
         setGoalCelebrationShown(false);
         setRecordShown(false);
@@ -750,14 +710,13 @@ const PushupsPage: React.FC = () => {
       });
   }, [activeSession, apiBaseUrl, fetchSummary, finishSessionRequest, token]);
 
-  const resumeRecoveredSession = useCallback(() => {
-    if (!recoveredSession) return;
-    setActiveSession({ ...recoveredSession, paused: false, completed: false });
-    setRecoveredSession(null);
+  const discardActiveSession = useCallback(() => {
+    setActiveSession(null);
+    setSessionSyncError(null);
     setShowGoalCelebration(false);
     setGoalCelebrationShown(false);
-    setSessionSyncError(null);
-  }, [recoveredSession]);
+    setRecordShown(false);
+  }, []);
 
   const closeMotivationIntro = useCallback(() => {
     if (motivationIntroTimerRef.current !== null) {
@@ -789,42 +748,13 @@ const PushupsPage: React.FC = () => {
   }, [closeMotivationIntro]);
 
   const exitSession = useCallback(() => {
-    setActiveSession((current) => {
-      if (!current) {
-        navigate("/pushups");
-        return current;
-      }
-      const next = { ...current, paused: true };
-      saveActiveSession(next);
-      setRecoveredSession(next);
-      void syncSession(next).catch(() => undefined);
-      navigate("/pushups");
-      return null;
-    });
-  }, [navigate, syncSession]);
-
-  const finishRecoveredSession = useCallback(() => {
-    if (!recoveredSession) return;
-    const finished = { ...recoveredSession, paused: true, completed: true };
-    void finishSessionRequest(finished)
-      .then((payload) => {
-        if (!apiBaseUrl || !token) {
-          setSummary((current) => addFinishedSessionToSummary(current, recoveredSession));
-        } else if (isRecord(payload)) {
-          setSummary((current) => ({
-            ...current,
-            completedToday: Boolean(payload.goalCompleted ?? payload.completedToday ?? current.completedToday),
-            currentStreak: toNumber(payload.currentStreak, current.currentStreak),
-            longestStreak: toNumber(payload.longestStreak, current.longestStreak),
-          }));
-        }
-        saveActiveSession(null);
-        setRecoveredSession(null);
-        if (apiBaseUrl && token) void fetchSummary();
-      })
-      .catch(() => {
-      });
-  }, [apiBaseUrl, fetchSummary, finishSessionRequest, recoveredSession, token]);
+    if (activeSession) {
+      void syncSession({ ...activeSession, paused: true }).catch(() => undefined);
+    }
+    setActiveSession(null);
+    setSessionSyncError(null);
+    navigate("/pushups");
+  }, [activeSession, navigate, syncSession]);
 
   const applyCustomGoal = useCallback(() => {
     const goal = Number(customGoal);
@@ -896,6 +826,11 @@ const PushupsPage: React.FC = () => {
             <button type="button" className="pushupsFinishBtn" onClick={finishSession}>
               Fullfør
             </button>
+            {sessionSyncError ? (
+              <button type="button" className="pushupsDiscardBtn" onClick={discardActiveSession}>
+                Forkast
+              </button>
+            ) : null}
           </div>
         )}
         {sessionSyncError ? <div className="pushupsTrackerError">{sessionSyncError}</div> : null}
@@ -910,21 +845,6 @@ const PushupsPage: React.FC = () => {
       <PageHeader title="Armhevinger" subtitle="Dagens økt" showBack />
 
       <section className="pushupsDashboard">
-        {recoveredSession ? (
-          <div className="pushupsResumeCard">
-            <div>
-              <strong>Uferdig økt</strong>
-              <span>Registrerte armhevinger blir ikke kastet.</span>
-            </div>
-            <button type="button" onClick={resumeRecoveredSession}>
-              Fortsett økt
-            </button>
-            <button type="button" onClick={finishRecoveredSession}>
-              Fullfør økt
-            </button>
-          </div>
-        ) : null}
-
         <div className={`pushupsHeroCard${isGoalComplete ? " complete" : ""}`}>
           <div className="pushupsStreak">{dailyStreak} dager på rad</div>
           <div className="pushupsToday">

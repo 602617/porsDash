@@ -20,7 +20,16 @@ type ScoreResponse = {
   }[];
 };
 
+const SCORE_ACTION_LABELS: Record<string, string> = {
+  COMPLETE_DAILY_PUSHUP_GOAL: "Fullførte dagens pushup-mål",
+  PUSHUP_WEEKLY_STREAK: "7-dagers pushup-streak",
+  PUSHUP_MONTHLY_STREAK: "30-dagers pushup-streak",
+};
+
 function formatScoreAction(action: string): string {
+  const label = SCORE_ACTION_LABELS[action];
+  if (label) return label;
+
   return action
     .toLowerCase()
     .split("_")

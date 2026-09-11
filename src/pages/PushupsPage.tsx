@@ -60,6 +60,8 @@ const SYNC_EVERY_MS = 25_000;
 const DEFAULT_COOLDOWN_MS = 400;
 const HISTORY_LIMIT = 30;
 const DISPLAY_HISTORY_DAYS = 7;
+const FORBIDDEN_SESSION_MESSAGE =
+  "Denne pushup-økten kan ikke synkes med brukeren som er logget inn. Start en ny økt hvis du nylig har logget inn på nytt.";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -332,6 +334,7 @@ const PushupsPage: React.FC = () => {
   const [motivationIntroActive, setMotivationIntroActive] = useState(false);
   const [pulseKey, setPulseKey] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  const [sessionSyncError, setSessionSyncError] = useState<string | null>(null);
   const [recordShown, setRecordShown] = useState(false);
   const [showGoalCelebration, setShowGoalCelebration] = useState(false);
   const [goalCelebrationShown, setGoalCelebrationShown] = useState(false);
@@ -483,6 +486,14 @@ const PushupsPage: React.FC = () => {
     };
   }, []);
 
+  const handleSessionRequestError = useCallback((status: number, message: string) => {
+    const nextMessage = status === 403 ? FORBIDDEN_SESSION_MESSAGE : message;
+    setSessionSyncError(nextMessage);
+    if (status === 403) {
+      setActiveSession((current) => (current ? { ...current, paused: true } : current));
+    }
+  }, []);
+
   const syncSession = useCallback(
     async (session: ActiveSession): Promise<void> => {
       if (!apiBaseUrl || !token || session.sessionCount < session.syncedCount) return;
@@ -496,7 +507,11 @@ const PushupsPage: React.FC = () => {
             headers: { ...authHeaders, "Content-Type": "application/json" },
             body: JSON.stringify({ count: session.sessionCount }),
           });
-          if (!res.ok) throw new Error(await extractResponseMessage(res, `Synk feilet (${res.status})`));
+          if (!res.ok) {
+            const message = await extractResponseMessage(res, `Synk feilet (${res.status})`);
+            handleSessionRequestError(res.status, message);
+            throw new Error(message);
+          }
           lastSyncAtRef.current = Date.now();
           setActiveSession((current) =>
             current?.sessionId === session.sessionId
@@ -511,7 +526,7 @@ const PushupsPage: React.FC = () => {
       syncPromiseRef.current = run;
       await run;
     },
-    [apiBaseUrl, authHeaders, token]
+    [apiBaseUrl, authHeaders, handleSessionRequestError, token]
   );
 
   const finishSessionRequest = useCallback(
@@ -528,7 +543,11 @@ const PushupsPage: React.FC = () => {
             headers: { ...authHeaders, "Content-Type": "application/json" },
             body: JSON.stringify({ count: finishCount }),
           });
-          if (!res.ok) throw new Error(await extractResponseMessage(res, `Synk feilet (${res.status})`));
+          if (!res.ok) {
+            const message = await extractResponseMessage(res, `Synk feilet (${res.status})`);
+            handleSessionRequestError(res.status, message);
+            throw new Error(message);
+          }
           lastSyncAtRef.current = Date.now();
           return (await res.json().catch(() => null)) as unknown | null;
         } finally {
@@ -539,7 +558,7 @@ const PushupsPage: React.FC = () => {
       syncPromiseRef.current = run;
       await run;
     },
-    [apiBaseUrl, authHeaders, token]
+    [apiBaseUrl, authHeaders, handleSessionRequestError, token]
   );
 
   useEffect(() => {
@@ -577,6 +596,10 @@ const PushupsPage: React.FC = () => {
               sessionId = toStringValue(payload.sessionId ?? payload.id) || sessionId;
               startedAt = toStringValue(payload.startedAt ?? payload.started_at) || startedAt;
             }
+          } else {
+            const message = await extractResponseMessage(res, `Kunne ikke starte økt (${res.status})`);
+            handleSessionRequestError(res.status, message);
+            return;
           }
         } catch {
           // Local session is still kept and can be synced later.
@@ -597,9 +620,10 @@ const PushupsPage: React.FC = () => {
       setRecoveredSession(null);
       setShowGoalCelebration(false);
       setGoalCelebrationShown(false);
+      setSessionSyncError(null);
       setNeedsGoal(false);
     },
-    [apiBaseUrl, authHeaders, token]
+    [apiBaseUrl, authHeaders, handleSessionRequestError, token]
   );
 
   const saveGoal = useCallback(
@@ -660,6 +684,7 @@ const PushupsPage: React.FC = () => {
   const registerPushup = useCallback((options?: { force?: boolean }) => {
     setActiveSession((current) => {
       if (!current || current.paused || current.completed) return current;
+      setSessionSyncError(null);
       const now = Date.now();
       if (!options?.force && now - current.lastRegisteredTouch < cooldownMs) return current;
       const nextCount = current.sessionCount + 1;
@@ -692,6 +717,7 @@ const PushupsPage: React.FC = () => {
   }, [syncSession]);
 
   const resumeSession = useCallback(() => {
+    setSessionSyncError(null);
     setActiveSession((current) => (current ? { ...current, paused: false } : current));
   }, []);
 
@@ -730,6 +756,7 @@ const PushupsPage: React.FC = () => {
     setRecoveredSession(null);
     setShowGoalCelebration(false);
     setGoalCelebrationShown(false);
+    setSessionSyncError(null);
   }, [recoveredSession]);
 
   const closeMotivationIntro = useCallback(() => {
@@ -871,6 +898,7 @@ const PushupsPage: React.FC = () => {
             </button>
           </div>
         )}
+        {sessionSyncError ? <div className="pushupsTrackerError">{sessionSyncError}</div> : null}
         {syncing ? <div className="pushupsTrackerSync">Synker...</div> : null}
       </main>
     );
@@ -917,7 +945,7 @@ const PushupsPage: React.FC = () => {
           </button>
         </div>
 
-        {error ? <div className="pushupsInlineError">{error}</div> : null}
+        {error || sessionSyncError ? <div className="pushupsInlineError">{error || sessionSyncError}</div> : null}
 
         <section className="pushupsStatsGrid" aria-label="Statistikk for armhevinger">
           <div>

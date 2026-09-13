@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { subscribeUser, testPushNotification } from "./usePushNotifications";
+import { getPushRegistration, subscribeUser, testPushNotification } from "./usePushNotifications";
 
 const DISMISSED_KEY = "notif_prompt_dismissed";
 
@@ -25,11 +25,7 @@ export default function NotificationPrompt() {
     }
     (async () => {
       try {
-        const registration = await navigator.serviceWorker.getRegistration("/sw.js");
-        if (!registration) {
-          if (isMounted) setHidden(false);
-          return;
-        }
+        const registration = await getPushRegistration();
         const sub = await registration.pushManager.getSubscription();
         if (isMounted) setHidden(!!sub);
       } catch {

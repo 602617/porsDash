@@ -29,6 +29,7 @@ import TimeRegistrationPage from './pages/TimeRegistrationPage.tsx'
 import { isCurrentUserAdmin } from './utils/adminAccess.ts'
 import { installAuth401Interceptor } from './utils/authFetch.ts'
 import { readStoredJwt } from './utils/jwtToken.ts'
+import { getPushRegistration } from './components/usePushNotifications.ts'
 
 function getSafeRedirectPath(search: string): string | null {
   const redirect = new URLSearchParams(search).get('redirect')
@@ -99,21 +100,7 @@ function RootEntry() {
 installAuth401Interceptor()
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker
-    .getRegistrations()
-    .then((registrations) => {
-      registrations.forEach((registration) => {
-        const scriptUrl = registration.active?.scriptURL || ''
-        if (!scriptUrl.endsWith('/sw.js')) {
-          console.log('[sw] Unregistering non-/sw.js worker:', scriptUrl)
-          registration.unregister()
-        }
-      })
-    })
-    .catch((err) => console.error('[sw] Failed to list registrations:', err))
-
-  navigator.serviceWorker
-    .register('/sw.js')
+  getPushRegistration()
     .then((registration) => {
       console.log('[sw] Service worker registered:', registration)
     })

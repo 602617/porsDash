@@ -1,5 +1,7 @@
 const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || ''
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
+const serviceWorkerUrl = import.meta.env.DEV ? '/push-sw.js' : '/sw.js'
+const serviceWorkerOptions: RegistrationOptions = import.meta.env.DEV ? {} : { type: 'module' }
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -33,16 +35,34 @@ function sameKey(a: ArrayBuffer | null, b: Uint8Array) {
   return true
 }
 
-async function getPushRegistration() {
-  const existing = await navigator.serviceWorker.getRegistration('/sw.js')
+function registrationScriptUrl(registration: ServiceWorkerRegistration) {
+  return registration.active?.scriptURL || registration.waiting?.scriptURL || registration.installing?.scriptURL || ''
+}
+
+export async function getPushRegistration() {
+  const registrations = await navigator.serviceWorker.getRegistrations()
+  const existing = registrations.find((registration) => registrationScriptUrl(registration).endsWith(serviceWorkerUrl))
   if (existing) {
-    console.log('[push] Using existing /sw.js registration', existing.scope)
+    console.log(`[push] Using existing ${serviceWorkerUrl} registration`, existing.scope)
     await navigator.serviceWorker.ready
     console.log('[push] Service worker ready', existing.active?.state)
     return existing
   }
-  console.log('[push] Registering /sw.js service worker')
-  const registration = await navigator.serviceWorker.register('/sw.js')
+
+  await Promise.all(
+    registrations
+      .filter((registration) => {
+        const scriptUrl = registrationScriptUrl(registration)
+        return scriptUrl && !scriptUrl.endsWith(serviceWorkerUrl)
+      })
+      .map((registration) => {
+        console.log('[push] Unregistering old service worker:', registrationScriptUrl(registration))
+        return registration.unregister()
+      })
+  )
+
+  console.log(`[push] Registering ${serviceWorkerUrl} service worker`)
+  const registration = await navigator.serviceWorker.register(serviceWorkerUrl, serviceWorkerOptions)
   await navigator.serviceWorker.ready
   console.log('[push] Service worker ready after register', registration.active?.state)
   return registration

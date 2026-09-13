@@ -56,12 +56,11 @@ const MOTIVATION_MODE_KEY = "pushups.motivationMode.v1";
 const MOTIVATION_INTRO_SRC = "/intro/intro2.mp4";
 const MOTIVATION_INTRO_FADE_MS = 2_000;
 const SYNC_EVERY_COUNT = 5;
-const SYNC_EVERY_MS = 25_000;
+const SYNC_EVERY_MS = 5_000;
 const DEFAULT_COOLDOWN_MS = 400;
 const HISTORY_LIMIT = 30;
 const DISPLAY_HISTORY_DAYS = 7;
-const FORBIDDEN_SESSION_MESSAGE =
-  "Denne pushup-økten kan ikke synkes med brukeren som er logget inn. Start en ny økt hvis du nylig har logget inn på nytt.";
+const SESSION_UNAVAILABLE_MESSAGE = "Denne økten kan ikke synkes. Start en ny pushup-økt.";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -137,8 +136,28 @@ function normalizeLeaderboard(raw: unknown): LeaderboardUser[] {
       rank: toNumber(entry.rank, index + 1),
       displayName: toStringValue(entry.displayName ?? entry.username ?? entry.name) || "Ukjent",
       value: toNumber(entry.value ?? entry.totalPushups ?? entry.bestDailyPushups),
-      currentUser: Boolean(entry.currentUser ?? entry.me),
+      currentUser: Boolean(entry.currentUser ?? entry.isCurrentUser ?? entry.me),
     }));
+}
+
+function normalizeActiveSession(raw: unknown, fallbackGoal: number): ActiveSession | null {
+  if (!isRecord(raw)) return null;
+  const sessionId = toStringValue(raw.sessionId ?? raw.id);
+  if (!sessionId) return null;
+  const startedAt = toStringValue(raw.startedAt ?? raw.started_at) || new Date().toISOString();
+  const startedDate = new Date(startedAt);
+  const count = toNumber(raw.sessionCount ?? raw.count ?? raw.syncedCount);
+  return {
+    sessionId,
+    startedAt,
+    sessionDate: Number.isNaN(startedDate.getTime()) ? localDateKey() : localDateKey(startedDate),
+    sessionCount: count,
+    syncedCount: count,
+    lastRegisteredTouch: 0,
+    paused: true,
+    completed: false,
+    dailyGoal: fallbackGoal,
+  };
 }
 
 function normalizeSummary(raw: unknown): PushupsSummary {
@@ -385,6 +404,43 @@ const PushupsPage: React.FC = () => {
   }, [fetchSummary]);
 
   useEffect(() => {
+    if (!apiBaseUrl || !token) return;
+    let cancelled = false;
+
+    async function fetchActiveSession() {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/pushups/sessions/active`, { headers: authHeaders });
+        if (cancelled) return;
+        if (res.status === 204) return;
+        if (!res.ok) {
+          if (res.status !== 404) {
+            setSessionSyncError(await extractResponseMessage(res, `Kunne ikke hente aktiv økt (${res.status})`));
+          }
+          return;
+        }
+        const payload = (await res.json().catch(() => null)) as unknown;
+        const session = normalizeActiveSession(payload, summary.dailyGoal);
+        if (session) {
+          setActiveSession((current) => current ?? session);
+        }
+      } catch {
+        if (!cancelled) setSessionSyncError("Kunne ikke hente aktiv pushup-økt.");
+      }
+    }
+
+    void fetchActiveSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBaseUrl, authHeaders, summary.dailyGoal, token]);
+
+  useEffect(() => {
+    if (!summary.dailyGoal) return;
+    setActiveSession((current) => (current && !current.dailyGoal ? { ...current, dailyGoal: summary.dailyGoal } : current));
+  }, [summary.dailyGoal]);
+
+  useEffect(() => {
     try {
       localStorage.removeItem(LEGACY_STORAGE_KEY);
     } catch {
@@ -450,9 +506,9 @@ const PushupsPage: React.FC = () => {
   }, []);
 
   const handleSessionRequestError = useCallback((status: number, message: string) => {
-    const nextMessage = status === 403 ? message || FORBIDDEN_SESSION_MESSAGE : message;
+    const nextMessage = message || SESSION_UNAVAILABLE_MESSAGE;
     setSessionSyncError(nextMessage);
-    if (status === 403) {
+    if (status === 400 || status === 403 || status === 404) {
       setActiveSession((current) => (current ? { ...current, paused: true } : current));
     }
   }, []);
@@ -475,10 +531,12 @@ const PushupsPage: React.FC = () => {
             handleSessionRequestError(res.status, message);
             throw new Error(message);
           }
+          const payload = (await res.json().catch(() => null)) as unknown;
           lastSyncAtRef.current = Date.now();
+          const syncedCount = isRecord(payload) ? toNumber(payload.sessionCount, session.sessionCount) : session.sessionCount;
           setActiveSession((current) =>
             current?.sessionId === session.sessionId
-              ? { ...current, syncedCount: Math.max(current.syncedCount, session.sessionCount) }
+              ? { ...current, syncedCount: Math.max(current.syncedCount, syncedCount) }
               : current
           );
         } finally {
@@ -524,6 +582,29 @@ const PushupsPage: React.FC = () => {
     [apiBaseUrl, authHeaders, handleSessionRequestError, token]
   );
 
+  const cancelSessionRequest = useCallback(
+    async (session: ActiveSession): Promise<void> => {
+      if (!apiBaseUrl || !token) return;
+      if (syncPromiseRef.current) await syncPromiseRef.current;
+
+      setSyncing(true);
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/pushups/sessions/${encodeURIComponent(session.sessionId)}/cancel`, {
+          method: "POST",
+          headers: authHeaders,
+        });
+        if (!res.ok && res.status !== 404) {
+          const message = await extractResponseMessage(res, `Kunne ikke avslutte økt (${res.status})`);
+          handleSessionRequestError(res.status, message);
+          throw new Error(message);
+        }
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [apiBaseUrl, authHeaders, handleSessionRequestError, token]
+  );
+
   useEffect(() => {
     if (!activeSession || activeSession.paused || activeSession.completed) return;
     const timer = window.setInterval(() => {
@@ -545,28 +626,36 @@ const PushupsPage: React.FC = () => {
         return;
       }
 
-      let sessionId = `pushups-${crypto.randomUUID()}`;
+      if (!apiBaseUrl || !token) {
+        setSessionSyncError("Du må være logget inn for å starte pushup-økt.");
+        return;
+      }
+
+      let sessionId = "";
       let startedAt = new Date().toISOString();
-      if (apiBaseUrl && token) {
-        try {
-          const res = await fetch(`${apiBaseUrl}/api/pushups/sessions`, {
-            method: "POST",
-            headers: authHeaders,
-          });
-          if (res.ok) {
-            const payload = (await res.json()) as unknown;
-            if (isRecord(payload)) {
-              sessionId = toStringValue(payload.sessionId ?? payload.id) || sessionId;
-              startedAt = toStringValue(payload.startedAt ?? payload.started_at) || startedAt;
-            }
-          } else {
-            const message = await extractResponseMessage(res, `Kunne ikke starte økt (${res.status})`);
-            handleSessionRequestError(res.status, message);
-            return;
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/pushups/sessions`, {
+          method: "POST",
+          headers: authHeaders,
+        });
+        if (res.ok) {
+          const payload = (await res.json()) as unknown;
+          if (isRecord(payload)) {
+            sessionId = toStringValue(payload.sessionId ?? payload.id);
+            startedAt = toStringValue(payload.startedAt ?? payload.started_at) || startedAt;
           }
-        } catch {
-          // Local session is still kept and can be synced later.
+        } else {
+          const message = await extractResponseMessage(res, `Kunne ikke starte økt (${res.status})`);
+          handleSessionRequestError(res.status, message);
+          return;
         }
+        if (!sessionId) {
+          setSessionSyncError("Backend returnerte ikke sessionId for pushup-økten.");
+          return;
+        }
+      } catch {
+        setSessionSyncError("Kunne ikke starte pushup-økt. Prøv igjen.");
+        return;
       }
 
       setActiveSession({
@@ -595,12 +684,21 @@ const PushupsPage: React.FC = () => {
       setActiveSession((current) => (current ? { ...current, dailyGoal: goal } : current));
       if (apiBaseUrl && token) {
         try {
-          await fetch(`${apiBaseUrl}/api/pushups/goal`, {
+          const res = await fetch(`${apiBaseUrl}/api/pushups/goal`, {
             method: "PUT",
             headers: { ...authHeaders, "Content-Type": "application/json" },
             body: JSON.stringify({ goal }),
           });
+          if (!res.ok) {
+            setError(await extractResponseMessage(res, `Kunne ikke lagre dagsmål (${res.status})`));
+            return;
+          }
+          const payload = (await res.json().catch(() => null)) as unknown;
+          if (isRecord(payload)) {
+            setSummary(normalizeSummary(payload));
+          }
         } catch {
+          setError("Kunne ikke lagre dagsmål.");
         }
       }
     },
@@ -694,6 +792,11 @@ const PushupsPage: React.FC = () => {
         } else if (isRecord(payload)) {
           setSummary((current) => ({
             ...current,
+            todayCount: toNumber(payload.todayCount, current.todayCount),
+            totalPushups: toNumber(payload.totalPushups, current.totalPushups),
+            bestDailyPushups: Boolean(payload.newPersonalBest)
+              ? Math.max(current.bestDailyPushups, toNumber(payload.todayCount, current.bestDailyPushups))
+              : current.bestDailyPushups,
             completedToday: Boolean(payload.goalCompleted ?? payload.completedToday ?? current.completedToday),
             currentStreak: toNumber(payload.currentStreak, current.currentStreak),
             longestStreak: toNumber(payload.longestStreak, current.longestStreak),
@@ -710,13 +813,19 @@ const PushupsPage: React.FC = () => {
       });
   }, [activeSession, apiBaseUrl, fetchSummary, finishSessionRequest, token]);
 
-  const discardActiveSession = useCallback(() => {
+  const clearActiveSessionState = useCallback(() => {
     setActiveSession(null);
     setSessionSyncError(null);
     setShowGoalCelebration(false);
     setGoalCelebrationShown(false);
     setRecordShown(false);
   }, []);
+
+  const discardActiveSession = useCallback(() => {
+    const session = activeSession;
+    if (session) void cancelSessionRequest(session).catch(() => undefined);
+    clearActiveSessionState();
+  }, [activeSession, cancelSessionRequest, clearActiveSessionState]);
 
   const closeMotivationIntro = useCallback(() => {
     if (motivationIntroTimerRef.current !== null) {
@@ -748,13 +857,26 @@ const PushupsPage: React.FC = () => {
   }, [closeMotivationIntro]);
 
   const exitSession = useCallback(() => {
-    if (activeSession) {
-      void syncSession({ ...activeSession, paused: true }).catch(() => undefined);
+    const session = activeSession;
+    if (!session) {
+      navigate("/pushups");
+      return;
     }
-    setActiveSession(null);
-    setSessionSyncError(null);
-    navigate("/pushups");
-  }, [activeSession, navigate, syncSession]);
+
+    void (async () => {
+      const paused = { ...session, paused: true };
+      try {
+        await syncSession(paused);
+      } catch {
+      }
+      try {
+        await cancelSessionRequest(paused);
+      } catch {
+      }
+      clearActiveSessionState();
+      navigate("/pushups");
+    })();
+  }, [activeSession, cancelSessionRequest, clearActiveSessionState, navigate, syncSession]);
 
   const applyCustomGoal = useCallback(() => {
     const goal = Number(customGoal);

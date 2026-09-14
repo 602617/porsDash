@@ -136,7 +136,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path='/notifications' element={<RequireAuth><NotificationsPage /></RequireAuth>} />
       <Route path='/testpage' element={<RequireAuth><TestPage /></RequireAuth>} />
       <Route path='/game' element={<RequireAuth><GamePage /></RequireAuth>} />
-      <Route path='/pushups' element={<RequireAdmin><PushupsPage /></RequireAdmin>} />
+      <Route path='/pushups' element={<RequireAuth><PushupsPage /></RequireAuth>} />
     </Routes>
   </BrowserRouter>
 </React.StrictMode>,
